@@ -43,7 +43,7 @@ class AddService(APIView):
     permission_classes = [IsAdminUser]
     def post(self, request):
         data = request.data
-        data = request.data
+
 
         # Validate service_type and api_location
         service_type = data.get('service_type')

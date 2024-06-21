@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'payments',
     'rest_framework',
     'corsheaders',
+    'wallet'
 ]
 
 

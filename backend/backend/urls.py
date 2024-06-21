@@ -18,6 +18,8 @@ from django.contrib import admin
 from django.urls import path
 from ap_monitor.views import ListDevices, DeleteDevice, UpdateDevices, AddDevice
 from service_monitor.views import ListServices, AddService, DeleteService, EditService, ListServicesByType
+from wallet.views import CreateWallet, SendToken
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('devices/', ListDevices.as_view()),
@@ -29,4 +31,6 @@ urlpatterns = [
     path('service/delete/<str:service_name>/', DeleteService.as_view(), name='delete_service'),
     path('service/edit/<str:service_name>/', EditService.as_view(), name='edit_service'),
     path('service/list-by-type/', ListServicesByType.as_view(), name='list-services-by-type'),
+    path('wallet/create/', CreateWallet.as_view(), name='create-wallet'),
+    path('wallet/send_token/', SendToken.as_view(), name='send-token'),
 ]
