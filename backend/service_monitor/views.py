@@ -8,8 +8,10 @@ from django.db import IntegrityError
 from django.core.exceptions import ValidationError
 from ap_monitor.permissions import IsAdminUser
 
+
 class ListServices(APIView):
     permission_classes = [IsAdminUser]
+
     def get(self, request):
         services = Service.objects.all()
         data = [{'name': s.name, 'url': s.url, 'service_type': s.service_type, 'api_location': s.api_location} for s in
@@ -41,9 +43,9 @@ class ListServicesByType(APIView):
 
 class AddService(APIView):
     permission_classes = [IsAdminUser]
+
     def post(self, request):
         data = request.data
-
 
         # Validate service_type and api_location
         service_type = data.get('service_type')
@@ -83,6 +85,7 @@ class AddService(APIView):
 
 class DeleteService(APIView):
     permission_classes = [IsAdminUser]
+
     def delete(self, request, service_name):
         try:
             service = Service.objects.get(name=service_name)
@@ -94,8 +97,10 @@ class DeleteService(APIView):
         except Exception as e:
             return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class EditService(APIView):
     permission_classes = [IsAdminUser]
+
     def patch(self, request, service_name):
         try:
             print(service_name)
@@ -109,10 +114,12 @@ class EditService(APIView):
 
             # Validate changes
             if service_type not in dict(Service.SERVICE_TYPES).keys():
-                return Response({"status": "error", "message": "Invalid service type."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"status": "error", "message": "Invalid service type."},
+                                status=status.HTTP_400_BAD_REQUEST)
 
             if api_location not in dict(Service.API_LOCATIONS).keys():
-                return Response({"status": "error", "message": "Invalid API location."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"status": "error", "message": "Invalid API location."},
+                                status=status.HTTP_400_BAD_REQUEST)
 
             service.service_type = service_type
             service.api_location = api_location
@@ -125,4 +132,3 @@ class EditService(APIView):
             return Response({"status": "error", "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-

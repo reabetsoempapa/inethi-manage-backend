@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -125,7 +126,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-KEYCLOAK_PUBLIC_KEY = os.getenv('KEYCLOAK_PUBLIC_KEY')
+KEYCLOAK_PUBLIC_KEY_NAME = os.getenv('KEYCLOAK_PUBLIC_KEY_NAME')
+with open(os.path.join(BASE_DIR, 'keys', KEYCLOAK_PUBLIC_KEY_NAME), 'r') as file:
+    KEYCLOAK_PUBLIC_KEY = file.read()
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
@@ -146,3 +149,51 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console_info': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+            'stream': 'ext://sys.stdout',  # Use standard output rather than standard error
+        },
+        'file_error': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': 'django_errors.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        '': {  # root logger
+            'handlers': ['console_info', 'file_error'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console_info', 'file_error'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'general': {
+            'handlers': ['console_info', 'file_error'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+

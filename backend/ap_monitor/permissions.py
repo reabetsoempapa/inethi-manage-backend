@@ -1,8 +1,12 @@
 # permissions.py
 
 from rest_framework.permissions import BasePermission
-from jose import jwt, JWTError
+from jose import jwt
 from django.conf import settings
+import logging
+
+# Get an instance of a logger
+logger = logging.getLogger('general')
 
 
 class IsAdminUser(BasePermission):
@@ -17,35 +21,15 @@ class IsAdminUser(BasePermission):
                 # Decode the token
                 key = settings.KEYCLOAK_PUBLIC_KEY
                 decoded_token = jwt.decode(token, key, algorithms=['RS256'], audience='account')
+
                 roles = decoded_token.get('realm_access', {}).get('roles', [])
                 if 'admin' in roles:
+                    logging.info(f"Admin user accessing a service: {decoded_token}")
                     return True
+                else:
+                    logging.info(f"Non-admin user attempted to access a protected service a service: {decoded_token}")
             except jwt.JWTError as e:
-                print(e)
+                logging.error(f"Cannot authenticate user as admin: {e}")
                 pass
         return False
 
-
-class UserAttributes(BasePermission):
-    def attributes(self, request):
-        auth = request.headers.get('Authorization', None)
-        if auth:
-            token = auth.split()[1]
-            try:
-                # Decode the token
-                attributes = {}
-                key = settings.KEYCLOAK_PUBLIC_KEY
-                decoded_token = jwt.decode(token, key, algorithms=['RS256'], audience='account')
-                username = decoded_token.get('preferred_username', None)
-                attributes['username'] = username
-                roles = decoded_token.get('realm_access', {}).get('roles', [])
-                attributes['create_wallet'] = False
-                if 'wallet' in roles:
-                    attributes['create_wallet'] = True
-                return attributes
-            except jwt.JWTError as e:
-                print(e)
-                return {
-                    'username': '',
-                    'create_wallet': False
-                }

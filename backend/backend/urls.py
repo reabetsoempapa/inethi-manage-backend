@@ -19,6 +19,7 @@ from django.urls import path
 from ap_monitor.views import ListDevices, DeleteDevice, UpdateDevices, AddDevice
 from service_monitor.views import ListServices, AddService, DeleteService, EditService, ListServicesByType
 from wallet.views import CreateWallet, SendToken
+from users.views import UserKeycloakAttributes
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -40,5 +41,5 @@ urlpatterns = [
     path('wallet/send_token/', SendToken.as_view()),
 
     # auth
-    path('auth/user/', SendToken.as_view()),
+    path('user/attributes/', UserKeycloakAttributes.as_view()),
 ]
