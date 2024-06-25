@@ -1,5 +1,4 @@
 from django.db import models
-from users.models import User
 from cryptography.fernet import Fernet
 import os
 from dotenv import load_dotenv
@@ -26,8 +25,7 @@ def decrypt_private_key(encrypted_key):
 
 class Wallet(models.Model):
     address = models.CharField(max_length=50, unique=True)
-    private_key = models.CharField(max_length=250)  # Increased length for encrypted key
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='wallet')
+    private_key = models.CharField(max_length=250)
     created_at = models.DateTimeField(default=timezone.now)
     name = models.CharField(max_length=50, default='default_name')
 
@@ -35,6 +33,3 @@ class Wallet(models.Model):
         if not self.pk:  # Only encrypt if it's a new object
             self.private_key = encrypt_private_key(self.private_key)
         super().save(*args, **kwargs)
-
-    class Meta:
-        unique_together = ('user', 'name')

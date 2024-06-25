@@ -5,4 +5,4 @@ from .models import User
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ['keycloak_username']
+    list_display = ['keycloak_username', 'has_wallet', 'created_at']

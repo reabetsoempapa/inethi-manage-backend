@@ -22,15 +22,23 @@ from wallet.views import CreateWallet, SendToken
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('devices/', ListDevices.as_view()),
-    path('delete/', DeleteDevice.as_view()),
-    path('update/', UpdateDevices.as_view()),
-    path('add/', AddDevice.as_view()),
+    # ap_monitor
+    path('monitor/devices/', ListDevices.as_view()),
+    path('monitor/delete/', DeleteDevice.as_view()),
+    path('monitor/update/', UpdateDevices.as_view()),
+    path('monitor/add/', AddDevice.as_view()),
+
+    # services
     path('service/list/', ListServices.as_view()),
     path('service/add/', AddService.as_view()),
-    path('service/delete/<str:service_name>/', DeleteService.as_view(), name='delete_service'),
-    path('service/edit/<str:service_name>/', EditService.as_view(), name='edit_service'),
-    path('service/list-by-type/', ListServicesByType.as_view(), name='list-services-by-type'),
-    path('wallet/create/', CreateWallet.as_view(), name='create-wallet'),
-    path('wallet/send_token/', SendToken.as_view(), name='send-token'),
+    path('service/delete/<str:service_name>/', DeleteService.as_view()),
+    path('service/edit/<str:service_name>/', EditService.as_view()),
+    path('service/list-by-type/', ListServicesByType.as_view()),
+
+    # wallets
+    path('wallet/create/', CreateWallet.as_view()),
+    path('wallet/send_token/', SendToken.as_view()),
+
+    # auth
+    path('auth/user/', SendToken.as_view()),
 ]

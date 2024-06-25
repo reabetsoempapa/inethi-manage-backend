@@ -92,7 +92,7 @@ class CreateWallet(APIView):
         address, private_key = create_account(w3)
 
         wallet = Wallet.objects.create(address=address, private_key=private_key, user=user, name=wallet_name)
-        return Response({"address": Wallet.address, 'name': Wallet.name}, status=status.HTTP_201_CREATED)
+        return Response({"address": wallet.address, 'name': wallet.name}, status=status.HTTP_201_CREATED)
 
 
 class SendToken(APIView):

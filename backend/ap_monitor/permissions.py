@@ -15,16 +15,37 @@ class IsAdminUser(BasePermission):
             token = auth.split()[1]
             try:
                 # Decode the token
-                key = settings.KEYCLOAK_PUBLIC_KEY  # You need to add your Keycloak public key in settings
-                # print(key)
+                key = settings.KEYCLOAK_PUBLIC_KEY
                 decoded_token = jwt.decode(token, key, algorithms=['RS256'], audience='account')
-                # Check if the admin role is present in the token
                 roles = decoded_token.get('realm_access', {}).get('roles', [])
-
-                # print(roles)
                 if 'admin' in roles:
                     return True
             except jwt.JWTError as e:
                 print(e)
                 pass
         return False
+
+
+class UserAttributes(BasePermission):
+    def attributes(self, request):
+        auth = request.headers.get('Authorization', None)
+        if auth:
+            token = auth.split()[1]
+            try:
+                # Decode the token
+                attributes = {}
+                key = settings.KEYCLOAK_PUBLIC_KEY
+                decoded_token = jwt.decode(token, key, algorithms=['RS256'], audience='account')
+                username = decoded_token.get('preferred_username', None)
+                attributes['username'] = username
+                roles = decoded_token.get('realm_access', {}).get('roles', [])
+                attributes['create_wallet'] = False
+                if 'wallet' in roles:
+                    attributes['create_wallet'] = True
+                return attributes
+            except jwt.JWTError as e:
+                print(e)
+                return {
+                    'username': '',
+                    'create_wallet': False
+                }
