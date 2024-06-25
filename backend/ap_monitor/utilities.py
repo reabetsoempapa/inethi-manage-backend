@@ -34,7 +34,7 @@ def update_prometheus_targets(ip_addresses):
 
     with open(full_path, 'w') as file:
         yaml.dump(data, file, sort_keys=False)
-    reload_prometheus()
+    # reload_prometheus()
 
 
 def remove_prometheus_targets(ip_addresses):
@@ -57,7 +57,7 @@ def remove_prometheus_targets(ip_addresses):
     with open(full_path, 'w') as file:
         yaml.dump(data, file, sort_keys=False)
     print('written yaml')
-    reload_prometheus()
+    # reload_prometheus()
 
 
 def validate_yaml(filename):
