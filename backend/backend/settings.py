@@ -26,8 +26,8 @@ SECRET_KEY = "django-insecure-+74x)9m1hsf)--#99%dgeqduae6if_g&nhanbzi2brd_#$r$$i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'http://127.0.0.1:8000', 'https://manage.inethicloud.net',
-                 'https://manage.inethilocal.net', 'https://manage-backend.inethilocal.net', 'https://manage-backend.inethicloud.net']
+ALLOWED_HOSTS = ['127.0.0.1', 'manage.inethicloud.net', 'manage.inethilocal.net', 'manage-backend.inethilocal.net',
+                 'manage-backend.inethicloud.net']
 
 CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://127.0.0.1:3000', 'https://manage.inethilocal.net',
                         'https://manage.inethicloud.net', 'https://manage-backend.inethilocal.net',
@@ -92,24 +92,24 @@ WSGI_APPLICATION = "backend.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'manage',
-        'USER': 'inethi',
-        'PASSWORD': 'iNethi2023#',
-        #'HOST': '127.0.0.1', # this works when running python locally
-        'HOST': 'inethi-manage-mysql',
-        'PORT': '3306',
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'manage',
+#         'USER': 'inethi',
+#         'PASSWORD': 'iNethi2023#',
+#         #'HOST': '127.0.0.1', # this works when running python locally
+#         'HOST': 'inethi-manage-mysql',
+#         'PORT': '3306',
+#     }
+# }
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
