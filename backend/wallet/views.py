@@ -10,7 +10,10 @@ import json
 from django.conf import settings
 
 load_dotenv()
+import logging
 
+# Get an instance of a logger
+logger = logging.getLogger('general')
 
 def load_contract_abi(file_name):
     file_path = os.path.join(settings.BASE_DIR, 'wallet', file_name)
@@ -77,53 +80,60 @@ def user_has_wallet(user_alias):
 
 class CreateWallet(APIView):
     def post(self, request):
-
-        keycloak_username = request.data.get('alias')
         try:
-            user = User.objects.get(keycloak_username=keycloak_username)
-        except User.DoesNotExist:
-            return Response({"error": "User does not exist."}, status=status.HTTP_404_NOT_FOUND)
+            keycloak_username = request.data.get('alias')
+            try:
+                user = User.objects.get(keycloak_username=keycloak_username)
+            except User.DoesNotExist:
+                return Response({"error": "User does not exist."}, status=status.HTTP_404_NOT_FOUND)
 
-        if Wallet.objects.filter(user=user).exists():
-            return Response({"error": "User already has a wallet."}, status=status.HTTP_400_BAD_REQUEST)
+            if Wallet.objects.filter(user=user).exists():
+                return Response({"error": "User already has a wallet."}, status=status.HTTP_400_BAD_REQUEST)
 
-        wallet_name = request.data.get('wallet_name')
-        w3 = Web3(Web3.HTTPProvider('https://forno.celo.org'))
-        address, private_key = create_account(w3)
+            wallet_name = request.data.get('wallet_name')
+            w3 = Web3(Web3.HTTPProvider('https://forno.celo.org'))
+            address, private_key = create_account(w3)
 
-        wallet = Wallet.objects.create(address=address, private_key=private_key, user=user, name=wallet_name)
-        return Response({"address": wallet.address, 'name': wallet.name}, status=status.HTTP_201_CREATED)
+            wallet = Wallet.objects.create(address=address, private_key=private_key, user=user, name=wallet_name)
+            return Response({"address": wallet.address, 'name': wallet.name}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.error(f"Error creating wallet: {e}")
+            return Response({"message": f"{e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SendToken(APIView):
     def post(self, request):
-        sender_alias = request.data.get('sender_alias')
-        recipient_alias = request.data.get('recipient_alias')
-        amount = request.data.get('amount')
+        try:
+            sender_alias = request.data.get('sender_alias')
+            recipient_alias = request.data.get('recipient_alias')
+            amount = request.data.get('amount')
 
-        sender_has_wallet = user_has_wallet(sender_alias)
-        recipient_has_wallet = user_has_wallet(sender_alias)
-        if not sender_has_wallet:
-            return Response({"error": f"{sender_alias} does not have a wallet or account"}, status=status.HTTP_400_BAD_REQUEST)
+            sender_has_wallet = user_has_wallet(sender_alias)
+            recipient_has_wallet = user_has_wallet(sender_alias)
+            if not sender_has_wallet:
+                return Response({"error": f"{sender_alias} does not have a wallet or account"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not recipient_has_wallet:
-            return Response({"error": f"{recipient_alias} does not have a wallet or account"}, status=status.HTTP_400_BAD_REQUEST)
+            if not recipient_has_wallet:
+                return Response({"error": f"{recipient_alias} does not have a wallet or account"}, status=status.HTTP_400_BAD_REQUEST)
 
-        w3 = Web3(Web3.HTTPProvider('https://forno.celo.org'))
-        contract_address = os.getenv('CONTRACT_ADDRESS')
-        contract_abi = load_contract_abi('contract_abi.json')
-        contract = w3.eth.contract(address=contract_address, abi=contract_abi)
-        chain_id = w3.eth.chain_id
+            w3 = Web3(Web3.HTTPProvider('https://forno.celo.org'))
+            contract_address = os.getenv('CONTRACT_ADDRESS')
+            contract_abi = load_contract_abi('contract_abi.json')
+            contract = w3.eth.contract(address=contract_address, abi=contract_abi)
+            chain_id = w3.eth.chain_id
 
-        recipient = User.objects.get(keycloak_username=recipient_alias)
-        recipient_wallet = Wallet.objects.get(user=recipient)
-        recipient_address = recipient_wallet.address
+            recipient = User.objects.get(keycloak_username=recipient_alias)
+            recipient_wallet = Wallet.objects.get(user=recipient)
+            recipient_address = recipient_wallet.address
 
-        sender = User.objects.get(keycloak_username=sender_alias)
-        sender_wallet = Wallet.objects.get(user=sender)
-        sender_address = sender_wallet.address
-        private_key = decrypt_private_key(sender_wallet.private_key)
+            sender = User.objects.get(keycloak_username=sender_alias)
+            sender_wallet = Wallet.objects.get(user=sender)
+            sender_address = sender_wallet.address
+            private_key = decrypt_private_key(sender_wallet.private_key)
 
-        receipt = send_token(w3, chain_id, contract, sender_address, recipient_address, amount, private_key)
-        print(receipt)
-        return Response({"message": 'successfully sent'}, status=status.HTTP_200_OK)
+            receipt = send_token(w3, chain_id, contract, sender_address, recipient_address, amount, private_key)
+            print(receipt)
+            return Response({"message": 'successfully sent'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error sending token(s): {e}")
+            return Response({"message": f"{e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
