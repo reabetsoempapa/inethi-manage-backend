@@ -57,17 +57,19 @@ INSTALLED_APPS = [
 AUTHENTICATION_BACKENDS = ["django_keycloak.backends.KeycloakAuthorizationCodeBackend"]
 LOGIN_URL = "keycloak_login"
 AUTH_USER_MODEL = "django_keycloak.KeycloakUser"
-KEYCLOAK_AUTH = {
-    "URL": os.environ["KEYCLOAK_URL"],
-    "REALM": os.environ["KEYCLOAK_REALM"],
-    "CLIENT_ID": os.environ["KEYCLOAK_CLIENT_ID"],
-    "CLIENT_SECRET": os.environ["KEYCLOAK_CLIENT_SECRET"]
-}
-DRF_KEYCLOAK_AUTH = {
-    "URL": os.environ["KEYCLOAK_URL"],
-    "REALM": os.environ["KEYCLOAK_REALM"],
-    "CLIENT_ID": os.environ["DRF_KEYCLOAK_CLIENT_ID"],
-    "CLIENT_SECRET": None  # DRF client is public
+KEYCLOAK_CLIENTS = {
+    "DEFAULT": {
+        "URL": os.environ["KEYCLOAK_URL"],
+        "REALM": os.environ["KEYCLOAK_REALM"],
+        "CLIENT_ID": os.environ["KEYCLOAK_CLIENT_ID"],
+        "CLIENT_SECRET": os.environ["KEYCLOAK_CLIENT_SECRET"]
+    },
+    "API": {
+        "URL": os.environ["KEYCLOAK_URL"],
+        "REALM": os.environ["KEYCLOAK_REALM"],
+        "CLIENT_ID": os.environ["DRF_KEYCLOAK_CLIENT_ID"],
+        "CLIENT_SECRET": None  # DRF client is public
+    }
 }
 
 
