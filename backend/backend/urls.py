@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import path
 from ap_monitor.views import ListDevices, DeleteDevice, UpdateDevices, AddDevice
 from service_monitor.views import ListServices, AddService, DeleteService, EditService, ListServicesByType
-from wallet.views import CreateWallet, SendToken
+from wallet.views import CreateWallet, SendToken, CheckBalance
 from users.views import UserKeycloakAttributes
 
 urlpatterns = [
@@ -38,7 +38,8 @@ urlpatterns = [
 
     # wallets
     path('wallet/create/', CreateWallet.as_view()),
-    path('wallet/send_token/', SendToken.as_view()),
+    path('wallet/send-token/', SendToken.as_view()),
+    path('wallet/balance/', CheckBalance.as_view()),
 
     # auth
     path('user/attributes/', UserKeycloakAttributes.as_view()),
