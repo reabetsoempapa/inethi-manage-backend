@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import os
 from .models import Wallet, decrypt_private_key
 from users.models import User
+from jose import jwt, JWTError, ExpiredSignatureError
 import json
 from django.conf import settings
 
@@ -81,21 +82,35 @@ def user_has_wallet(user_alias):
 class CreateWallet(APIView):
     def post(self, request):
         try:
-            keycloak_username = request.data.get('alias')
+            if 'Authorization' not in request.headers:
+                return Response({"status": "error", 'message': 'Authentication credentials were not provided.'},
+                                status=status.HTTP_401_UNAUTHORIZED)
+            auth = request.headers.get('Authorization', None)
+            token = auth.split()[1]
+            key = settings.KEYCLOAK_PUBLIC_KEY
+            decoded_token = jwt.decode(token, key, algorithms=['RS256'], audience='account')
+            keycloak_username = decoded_token.get('preferred_username')
             try:
                 user = User.objects.get(keycloak_username=keycloak_username)
             except User.DoesNotExist:
                 return Response({"error": "User does not exist."}, status=status.HTTP_404_NOT_FOUND)
 
-            if Wallet.objects.filter(user=user).exists():
+            if user.has_wallet:
                 return Response({"error": "User already has a wallet."}, status=status.HTTP_400_BAD_REQUEST)
 
             wallet_name = request.data.get('wallet_name')
-            w3 = Web3(Web3.HTTPProvider('https://forno.celo.org'))
-            address, private_key = create_account(w3)
+            roles = decoded_token.get('realm_access', {}).get('roles', [])
+            if 'create_wallet' in roles:
+                w3 = Web3(Web3.HTTPProvider('https://forno.celo.org'))
+                address, private_key = create_account(w3)
 
-            wallet = Wallet.objects.create(address=address, private_key=private_key, user=user, name=wallet_name)
-            return Response({"address": wallet.address, 'name': wallet.name}, status=status.HTTP_201_CREATED)
+                wallet = Wallet.objects.create(address=address, private_key=private_key, name=wallet_name)
+                user.has_wallet = True
+                user.wallet = wallet
+                user.save()
+                return Response({"address": wallet.address, 'name': wallet.name}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"error": "User does not have permission to create a wallet."}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"Error creating wallet: {e}")
             return Response({"message": f"{e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

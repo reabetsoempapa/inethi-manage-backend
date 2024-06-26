@@ -23,7 +23,8 @@ class UserKeycloakAttributes(APIView):
             attributes['username'] = username
             roles = decoded_token.get('realm_access', {}).get('roles', [])
             attributes['create_wallet'] = False
-            if 'wallet' in roles:
+
+            if 'create_wallet' in roles:
                 attributes['create_wallet'] = True
             return Response({'attributes': attributes}, status=status.HTTP_200_OK)
         except IndexError:
