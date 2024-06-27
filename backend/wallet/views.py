@@ -45,7 +45,9 @@ def estimate_gas_for_transfer(contract, from_address, to_address, amount):
 def send_token(w3, chain_id, contract, from_address, to_address, amount, private_key):
     # Calculate the token amount adjusted for decimals
     decimals = contract.functions.decimals().call()
+    amount = int(amount)
     token_amount = int(amount * (10 ** decimals))
+
     gas = estimate_gas_for_transfer(contract, from_address, to_address, amount)
 
     # Fetch the current network gas price
@@ -94,7 +96,8 @@ class CreateWallet(APIView):
             try:
                 decoded_token = jwt.decode(token, key, algorithms=['RS256'], audience='account')
             except InvalidAlgorithmError as e:
-                return Response({'error': 'Invalid algorithm used to decode the token.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({'error': 'Invalid algorithm used to decode the token.'},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             keycloak_username = decoded_token.get('preferred_username')
@@ -151,7 +154,8 @@ class SendToken(APIView):
             if payment_method == 'username':
                 recipient_alias = request.data.get('recipient_alias')
                 if not User.objects.filter(keycloak_username=recipient_alias).exists():
-                    return Response({"error": f"{recipient_alias} does not have an account"}, status=status.HTTP_404_NOT_FOUND)
+                    return Response({"error": f"{recipient_alias} does not have an account"},
+                                    status=status.HTTP_404_NOT_FOUND)
                 recipient = User.objects.get(keycloak_username=recipient_alias)
                 recipient_has_wallet = recipient.has_wallet
                 if not recipient_has_wallet:
@@ -169,6 +173,12 @@ class SendToken(APIView):
             chain_id = w3.eth.chain_id
             sender_wallet = sender.wallet
             sender_address = sender_wallet.address
+            balance = check_balance_custom_contract(contract, sender_address)
+            if balance < float(amount):
+                logger.error(f"{sender_alias} has insufficient funds to send {amount}")
+                return Response({"error": f"Insufficient funds to send {amount}"},
+                                status=status.HTTP_412_PRECONDITION_FAILED)
+
             private_key = decrypt_private_key(sender_wallet.private_key)
 
             receipt = send_token(w3, chain_id, contract, sender_address, recipient_address, amount, private_key)
@@ -176,7 +186,7 @@ class SendToken(APIView):
         except User.DoesNotExist:
             logger.error(f"Error sending token(s) as user does not exist")
             return Response({"error": f"Error sending token(s) as user does not exist"},
-                            status=status.HTTP_400_BAD_REQUEST)
+                            status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             logger.error(f"Error sending token(s): {e}")
             return Response({"error": f"{e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
