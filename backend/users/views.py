@@ -71,6 +71,9 @@ class RegisterKeycloakUser(APIView):
         user_data = {
             'username': username,
             'enabled': True,
+            'email': f'{username}@inethi.org.za',
+            'firstName': f'auto_{username}',
+            'lastName': f'auto_{username}',
             'credentials': [{
                 'type': 'password',
                 'value': password,
