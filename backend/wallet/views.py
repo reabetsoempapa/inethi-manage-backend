@@ -107,7 +107,7 @@ class CreateWallet(APIView):
                 user = User.objects.create(keycloak_username=keycloak_username)
 
             if user.has_wallet:
-                return Response({"error": "User already has a wallet."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "User already has a wallet."}, status=status.HTTP_409_CONFLICT)
 
             wallet_name = request.data.get('wallet_name')
             roles = decoded_token.get('realm_access', {}).get('roles', [])
@@ -148,7 +148,8 @@ class SendToken(APIView):
                 return Response({"error": f"{sender_alias} does not have an account"}, status=status.HTTP_404_NOT_FOUND)
             sender_has_wallet = sender.has_wallet
             if not sender_has_wallet:
-                return Response({"error": f"{sender_alias} does not have a wallet"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": f"{sender_alias} does not have a wallet"},
+                                status=status.HTTP_417_EXPECTATION_FAILED)
 
             payment_method = request.data.get('payment_method')
             if payment_method == 'username':
@@ -160,7 +161,7 @@ class SendToken(APIView):
                 recipient_has_wallet = recipient.has_wallet
                 if not recipient_has_wallet:
                     return Response({"error": f"{recipient_alias} does not have a wallet"},
-                                    status=status.HTTP_400_BAD_REQUEST)
+                                    status=status.HTTP_406_NOT_ACCEPTABLE)
                 recipient_wallet = recipient.wallet
                 recipient_address = recipient_wallet.address
             else:
@@ -198,7 +199,6 @@ class CheckBalance(APIView):
             if 'Authorization' not in request.headers:
                 return Response({"status": "error", 'message': 'Authentication credentials were not provided.'},
                                 status=status.HTTP_401_UNAUTHORIZED)
-            sender_alias = request.data.get('sender_alias')
             auth = request.headers.get('Authorization', None)
             token = auth.split()[1]
             key = settings.KEYCLOAK_PUBLIC_KEY
@@ -206,6 +206,9 @@ class CheckBalance(APIView):
             keycloak_username = decoded_token.get('preferred_username')
 
             user = User.objects.get(keycloak_username=keycloak_username)
+            if not user.has_wallet:
+                return Response({"error": f"Error checking balance user does not have a wallet"},
+                                status=status.HTTP_417_EXPECTATION_FAILED)
             wallet_address = user.wallet.address
             w3 = Web3(Web3.HTTPProvider('https://forno.celo.org'))
             contract_address = os.getenv('CONTRACT_ADDRESS')
@@ -215,9 +218,36 @@ class CheckBalance(APIView):
             name = contract.functions.name().call()
             return Response({"balance": f'{balance} {name}'}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
-            logger.error(f"Error sending token(s) as user does not exist")
-            return Response({"error": f"Error sending token(s) as user does not exist"},
-                            status=status.HTTP_400_BAD_REQUEST)
+            logger.error(f"Error checking balance as user does not exist")
+            return Response({"error": f"Error retrieving balance as user does not exist"},
+                            status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(e)
+            return Response({"error": f"{e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CheckWallet(APIView):
+    def get(self, request):
+        try:
+            if 'Authorization' not in request.headers:
+                return Response({"status": "error", 'message': 'Authentication credentials were not provided.'},
+                                status=status.HTTP_401_UNAUTHORIZED)
+            auth = request.headers.get('Authorization', None)
+            token = auth.split()[1]
+            key = settings.KEYCLOAK_PUBLIC_KEY
+            decoded_token = jwt.decode(token, key, algorithms=['RS256'], audience='account')
+            keycloak_username = decoded_token.get('preferred_username')
+            user = User.objects.get(keycloak_username=keycloak_username)
+            if not user.has_wallet:
+                return Response({"has_wallet": False},
+                                status=status.HTTP_200_OK)
+            else:
+                return Response({"has_wallet": True},
+                                status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            logger.error(f"Error checking wallet as user does not exist")
+            return Response({"error": f"Error retrieving wallet as user does not exist"},
+                            status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             logger.error(e)
             return Response({"error": f"{e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
