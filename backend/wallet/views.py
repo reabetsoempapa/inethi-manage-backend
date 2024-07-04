@@ -46,7 +46,7 @@ def send_token(w3, chain_id, contract, from_address, to_address, amount, private
     # Calculate the token amount adjusted for decimals
     decimals = contract.functions.decimals().call()
     amount = float(amount)
-    token_amount = float(amount * (10 ** decimals))
+    token_amount = int(amount * (10 ** decimals))
 
     gas = estimate_gas_for_transfer(contract, from_address, to_address, amount)
 
