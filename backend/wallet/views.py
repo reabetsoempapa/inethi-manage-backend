@@ -251,3 +251,36 @@ class CheckWallet(APIView):
         except Exception as e:
             logger.error(e)
             return Response({"error": f"{e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CheckDetails(APIView):
+    def get(self, request):
+        try:
+            if 'Authorization' not in request.headers:
+                return Response({"status": "error", 'message': 'Authentication credentials were not provided.'},
+                                status=status.HTTP_401_UNAUTHORIZED)
+            auth = request.headers.get('Authorization', None)
+            token = auth.split()[1]
+            key = settings.KEYCLOAK_PUBLIC_KEY
+            decoded_token = jwt.decode(token, key, algorithms=['RS256'], audience='account')
+            keycloak_username = decoded_token.get('preferred_username')
+
+            user = User.objects.get(keycloak_username=keycloak_username)
+            if not user.has_wallet:
+                return Response({"error": f"Error checking details user does not have a wallet"},
+                                status=status.HTTP_417_EXPECTATION_FAILED)
+            wallet_address = user.wallet.address
+            w3 = Web3(Web3.HTTPProvider('https://forno.celo.org'))
+            contract_address = os.getenv('CONTRACT_ADDRESS')
+            contract_abi = load_contract_abi('contract_abi.json')
+            contract = w3.eth.contract(address=contract_address, abi=contract_abi)
+            balance = check_balance_custom_contract(contract, wallet_address)
+            name = contract.functions.name().call()
+            return Response({"balance": f'{balance} {name}', "wallet_address": wallet_address}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            logger.error(f"Error checking details as user does not exist")
+            return Response({"error": f"Error retrieving details as user does not exist"},
+                            status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(e)
+            return Response({"error": f"{e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
