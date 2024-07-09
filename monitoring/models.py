@@ -23,6 +23,7 @@ class Node(models.Model):
     name = models.CharField(max_length=255)
     mesh = models.ForeignKey(Mesh, on_delete=models.CASCADE)
     # Optional Fields
+    online = models.BooleanField(default=False)
     neighbours = models.ManyToManyField("Node", blank=True)
     description = models.CharField(max_length=255, null=True, blank=True)
     hardware = models.CharField(max_length=255, blank=True, null=True)

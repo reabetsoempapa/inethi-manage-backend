@@ -46,8 +46,12 @@ class CheckResults(list[CheckResult]):
         results = cls()
         for check in settings.DEVICE_CHECKS:
             check_func = check.get("func", bool)
-            get_func = getattr(node, f"get_{check['key']}")
-            value = get_func()
+            key = check["key"]
+            if hasattr(node, key):
+                value = getattr(node, key)
+            else:
+                get_func = getattr(node, f"get_{check['key']}")
+                value = get_func()
             if value is not None:
                 passed = check_func(value)
             else:

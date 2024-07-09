@@ -11,7 +11,15 @@ logger = get_task_logger(__name__)
 @shared_task
 def run_pings():
     for device in Node.objects.filter(ip__isnull=False):
-        ping_data = ping(device.ip)
+        try:
+            ping_data = ping(device.ip)
+            is_online = ping_data["reachable"]
+        except ValueError:
+            is_online = False
+        # Update the device online status
+        if device.online != is_online:
+            device.online = is_online
+            device.save(update_fields=["online"])
         rtt_data = ping_data.pop("rtt", None)
         UptimeMetric.objects.create(mac=device.mac, **ping_data)
         if rtt_data:
