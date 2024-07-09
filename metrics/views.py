@@ -70,3 +70,10 @@ class DataUsageViewSet(FilterByMinTimeMixin, FilterByDeviceMacMixin, ModelViewSe
 
     queryset = models.DataUsageMetric.objects.all()
     serializer_class = serializers.DataUsageMetricSerializer
+
+
+class DataRateViewSet(FilterByMinTimeMixin, FilterByDeviceMacMixin, ModelViewSet):
+    """View/Edit/Add/Delete DataRateMetric items."""
+
+    queryset = models.DataRateMetric.objects.all()
+    serializer_class = serializers.DataRateMetricSerializer

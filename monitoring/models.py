@@ -3,7 +3,7 @@ from django.utils.functional import cached_property
 from django.db import models
 from macaddress.fields import MACAddressField
 
-from metrics.models import UptimeMetric, ResourcesMetric, RTTMetric
+from metrics.models import UptimeMetric, ResourcesMetric, RTTMetric, DataRateMetric
 from .checks import CheckResults, CheckStatus
 
 
@@ -36,6 +36,12 @@ class Node(models.Model):
     def last_uptime_metric(self) -> UptimeMetric | None:
         """Get the last uptime metric for this node."""
         qs = UptimeMetric.objects.filter(mac=self.mac, reachable=True)
+        return qs.order_by("-created").first()
+
+    @cached_property
+    def last_rate_metric(self) -> DataRateMetric | None:
+        """Get the last data rate metric for this node."""
+        qs = DataRateMetric.objects.filter(mac=self.mac, tx_rate__isnull=False, rx_rate__isnull=False)
         return qs.order_by("-created").first()
 
     @cached_property
@@ -72,6 +78,14 @@ class Node(models.Model):
     def get_rtt(self) -> bool | None:
         """Get device RTT time."""
         return getattr(self.last_rtt_metric, "rtt_avg", None)
+
+    def get_download_speed(self) -> float | None:
+        """Get device download speed."""
+        return getattr(self.last_rate_metric, "tx_rate", None)
+
+    def get_upload_speed(self) -> float | None:
+        """Get device upload speed."""
+        return getattr(self.last_rate_metric, "rx_rate", None)
 
     def __str__(self):
         return f"Node {self.name} ({self.mac})"

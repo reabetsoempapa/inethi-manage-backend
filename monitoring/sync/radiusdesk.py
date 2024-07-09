@@ -8,7 +8,7 @@ from django.conf import settings
 from django.utils.timezone import make_aware, now
 
 from monitoring.models import Mesh, Node, UnknownNode
-from metrics.models import FailuresMetric, ResourcesMetric, DataUsageMetric
+from metrics.models import FailuresMetric, ResourcesMetric, DataUsageMetric, DataRateMetric
 from .utils import bulk_sync
 
 
@@ -34,6 +34,16 @@ FROM node_stations s
 JOIN nodes n
 ON s.node_id = n.id;
 SELECT a.mac, s.tx_bytes, s.rx_bytes, s.created
+FROM ap_stations s
+JOIN aps a
+ON s.ap_id = a.id;
+"""
+GET_NODE_AND_AP_RATES_QUERY = """
+SELECT n.mac, s.rx_bitrate, s.tx_bitrate, s.created
+FROM node_stations s
+JOIN nodes n
+ON s.node_id = n.id;
+SELECT a.mac, s.rx_bitrate, s.tx_bitrate, s.created
 FROM ap_stations s
 JOIN aps a
 ON s.ap_id = a.id;
@@ -132,6 +142,19 @@ def sync_node_bytes_metrics(cursor):
             yield data, {"created": make_aware(created, TZ)}
 
 
+@bulk_sync(DataRateMetric)
+def sync_node_rates_metrics(cursor):
+    """Sync DataRateMetric objects from the radiusdesk database."""
+    for result in cursor.execute(GET_NODE_AND_AP_RATES_QUERY, multi=True):
+        for mac, rx_rate, tx_rate, created in result.fetchall():
+            data = dict(
+                mac=mac,
+                rx_rate=rx_rate,
+                tx_rate=tx_rate,
+            )
+            yield data, {"created": make_aware(created, TZ)}
+
+
 @bulk_sync(FailuresMetric)
 def sync_node_failures_metrics(cursor):
     """Sync FailuresMetric objects from the radiusdesk database."""
@@ -181,6 +204,7 @@ def run():
             sync_nodes(cursor)
             sync_unknown_nodes(cursor)
             sync_node_bytes_metrics(cursor)
+            sync_node_rates_metrics(cursor)
             sync_node_resources_metrics(cursor)
             sync_node_failures_metrics(cursor)
             elapsed_time = time.time() - start_time

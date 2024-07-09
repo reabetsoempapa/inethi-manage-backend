@@ -67,6 +67,8 @@ class NodeSerializer(DynamicFieldsModelSerializer):
     checks = SerializerMethodField()
     latest_alerts = SerializerMethodField()
     num_unresolved_alerts = SerializerMethodField()
+    upload_speed = SerializerMethodField()
+    download_speed = SerializerMethodField()
 
     def get_status(self, node: models.Node) -> str:
         return node.check_results.status().value
@@ -86,3 +88,11 @@ class NodeSerializer(DynamicFieldsModelSerializer):
     def get_num_unresolved_alerts(self, node: models.Node) -> int:
         """Get the number of unresolved alerts for this node."""
         return node.alerts.filter(resolved=False).count()
+
+    def get_upload_speed(self, node: models.Node) -> float | None:
+        """Get node's upload speed."""
+        return node.get_upload_speed()
+
+    def get_download_speed(self, node: models.Node) -> float | None:
+        """Get node's download speed."""
+        return node.get_download_speed()

@@ -58,7 +58,17 @@ class DataUsageMetric(Metric):
     rx_bytes = models.BigIntegerField()
 
     def __str__(self):
-        return f"Metric: Bytes [{self.created}]"
+        return f"Metric: Data Usage [{self.created}]"
+
+
+class DataRateMetric(Metric):
+    """Metric for a node's transfer/receive speed."""
+
+    tx_rate = models.IntegerField(null=True, blank=True)
+    rx_rate = models.IntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Metric: Data Rate [{self.created}]"
 
 
 class FailuresMetric(Metric):

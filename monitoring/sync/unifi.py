@@ -9,7 +9,7 @@ from django.utils.timezone import make_aware
 import pytz
 
 from monitoring.models import Mesh, Node
-from metrics.models import DataUsageMetric, FailuresMetric, ResourcesMetric
+from metrics.models import DataUsageMetric, FailuresMetric, ResourcesMetric, DataRateMetric
 from .utils import bulk_sync
 
 TZ = pytz.UTC
@@ -51,6 +51,21 @@ def sync_node_data_usage_metrics(client):
             mac=ap["ap"],
             tx_bytes=ap.get("tx_bytes"),
             rx_bytes=ap.get("rx_bytes"),
+        )
+        yield data, {"created": ap_time}
+
+
+@bulk_sync(DataRateMetric)
+def sync_node_data_rate_metrics(client):
+    """Sync DataRateMetric objects from the unifi database."""
+    aps = client.ace_stat.stat_5minutes.find({"o": "ap"})
+    for ap in aps:
+        ap_time = make_aware(datetime.fromtimestamp(ap["time"] / 1e3), TZ)
+        bytes_per_5mins_to_bits_per_second = 8 / 5 / 60
+        data = dict(
+            mac=ap["ap"],
+            tx_rate=ap.get("client-tx_bytes") * bytes_per_5mins_to_bits_per_second,
+            rx_rate=ap.get("client-rx_bytes") * bytes_per_5mins_to_bits_per_second,
         )
         yield data, {"created": ap_time}
 
@@ -99,6 +114,7 @@ def run():
     sync_meshes(_client)
     sync_nodes(_client)
     sync_node_data_usage_metrics(_client)
+    sync_node_data_rate_metrics(_client)
     sync_node_failures_metrics(_client)
     sync_node_resources_metrics(_client)
     elapsed_time = time.time() - start_time

@@ -53,3 +53,13 @@ class DataUsageMetricSerializer(ModelSerializer):
 
         model = models.DataUsageMetric
         fields = "__all__"
+
+
+class DataRateMetricSerializer(ModelSerializer):
+    """Serializes DataRateMetric objects from django model to JSON."""
+
+    class Meta:
+        """DataRateMetricSerializer metadata."""
+
+        model = models.DataRateMetric
+        fields = "__all__"
