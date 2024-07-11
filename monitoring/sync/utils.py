@@ -1,5 +1,9 @@
 from typing import Type
+from datetime import datetime
+
 from django.db import models
+from django.utils.timezone import make_aware
+import pytz
 
 
 def bulk_sync(ModelType: Type[models.Model], delete: bool = False):
@@ -27,3 +31,8 @@ def bulk_sync(ModelType: Type[models.Model], delete: bool = False):
         return inner
 
     return outer
+
+
+def aware_timestamp(v: int) -> datetime:
+    """Generate an aware datetime from epoch timestamp."""
+    return make_aware(datetime.fromtimestamp(v / 1e3), pytz.UTC)

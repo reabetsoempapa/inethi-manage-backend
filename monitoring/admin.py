@@ -18,3 +18,4 @@ class NetworkDeviceAdmin(admin.ModelAdmin):
 admin.site.register(models.Alert)
 admin.site.register(models.Mesh)
 admin.site.register(models.UnknownNode)
+admin.site.register(models.ClientSession)

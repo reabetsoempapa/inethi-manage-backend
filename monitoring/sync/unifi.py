@@ -1,18 +1,19 @@
 """Sync with a radiusdesk database."""
 
 import time
-from datetime import datetime
+from datetime import timedelta
 
 from pymongo import MongoClient
 from django.conf import settings
-from django.utils.timezone import make_aware
-import pytz
 
-from monitoring.models import Mesh, Node
-from metrics.models import DataUsageMetric, FailuresMetric, ResourcesMetric, DataRateMetric
-from .utils import bulk_sync
-
-TZ = pytz.UTC
+from monitoring.models import Mesh, Node, ClientSession
+from metrics.models import (
+    DataUsageMetric,
+    FailuresMetric,
+    ResourcesMetric,
+    DataRateMetric,
+)
+from .utils import bulk_sync, aware_timestamp
 
 
 @bulk_sync(Mesh)
@@ -26,9 +27,11 @@ def sync_meshes(client):
 def sync_nodes(client):
     """Sync Node objects from the unifi database."""
     for device in client.ace.device.find():
-        adoption_details = client.ace.event.find_one({"key": "EVT_AP_Adopted", "ap": device["mac"]})
+        adoption_details = client.ace.event.find_one(
+            {"key": "EVT_AP_Adopted", "ap": device["mac"]}
+        )
         name = adoption_details["ap_name"] if adoption_details else device["model"]
-        adopt_time = make_aware(datetime.fromtimestamp(device["adopted_at"] / 1e3), TZ)
+        adopt_time = aware_timestamp(device["adopted_at"])
         data = dict(
             mesh=Mesh.objects.get(name=device["last_connection_network_name"].lower()),
             name=name,
@@ -46,7 +49,7 @@ def sync_node_data_usage_metrics(client):
     """Sync DataUsageMetric objects from the unifi database."""
     aps = client.ace_stat.stat_hourly.find({"o": "ap"})
     for ap in aps:
-        ap_time = make_aware(datetime.fromtimestamp(ap["time"] / 1e3), TZ)
+        ap_time = aware_timestamp(ap["time"])
         data = dict(
             mac=ap["ap"],
             tx_bytes=ap.get("tx_bytes"),
@@ -60,7 +63,7 @@ def sync_node_data_rate_metrics(client):
     """Sync DataRateMetric objects from the unifi database."""
     aps = client.ace_stat.stat_5minutes.find({"o": "ap"})
     for ap in aps:
-        ap_time = make_aware(datetime.fromtimestamp(ap["time"] / 1e3), TZ)
+        ap_time = aware_timestamp(ap["time"])
         bytes_per_5mins_to_bits_per_second = 8 / 5 / 60
         data = dict(
             mac=ap["ap"],
@@ -75,7 +78,7 @@ def sync_node_failures_metrics(client):
     """Sync FailuresMetric objects from the unifi database."""
     aps = client.ace_stat.stat_hourly.find({"o": "ap"})
     for ap in aps:
-        ap_time = make_aware(datetime.fromtimestamp(ap["time"] / 1e3), TZ)
+        ap_time = aware_timestamp(ap["time"])
         data = dict(
             mac=ap["ap"],
             tx_packets=ap.get("tx_packets"),
@@ -94,13 +97,50 @@ def sync_node_resources_metrics(client):
     """Sync NodeLoad objects from the unifi database."""
     aps = client.ace_stat.stat_hourly.find({"o": "ap"})
     for ap in aps:
-        ap_time = make_aware(datetime.fromtimestamp(ap["time"] / 1e3), TZ)
+        ap_time = aware_timestamp(ap["time"])
         data = dict(
             mac=ap["ap"],
             memory=ap.get("mem"),
             cpu=ap.get("cpu"),
         )
         yield data, {"created": ap_time}
+
+
+@bulk_sync(ClientSession)
+def sync_client_sessions(client: MongoClient):
+    """Sync ClientSession objects from the unifi database."""
+    # This on'es a bit tricky, unifi doesn't store client sessions, but stores
+    # statistics in 5 minute intervals. The idea is to loop through each user's
+    # stats in the order they were created and try stitch together each session.
+    cursor = client.ace_stat.stat_5minutes.find({"o": "user"})
+    for user_mac in cursor.distinct("user"):
+        user = client.ace.user.find_one({"mac": user_mac})
+        # Could not find this user, skip
+        if not user:
+            continue
+        kwargs, data = {}, {}
+        user_data = list(
+            client.ace_stat.stat_5minutes.find({"user": user_mac}, sort={"time": 1})
+        )
+        for i, d1 in enumerate(user_data):
+            # We need the next stats entry to see whether there was a significant time delay
+            # between the two, i.e. the session was ended
+            d2 = user_data[i + 1] if i < len(user_data) - 1 else None
+            # start_time, uplink and mac uniquely identify a session
+            kwargs.setdefault("start_time", aware_timestamp(d1["time"]))
+            kwargs.setdefault("uplink", Node.objects.get(mac=d1["x-set-ap_macs"][0]))
+            kwargs["mac"] = user_mac
+            # bytes_recv, bytes_sent, end_time and username are session data
+            data["bytes_recv"] = data.get("bytes_recv", 0) + d1["rx_bytes"]
+            data["bytes_sent"] = data.get("bytes_sent", 0) + d1["tx_bytes"]
+            data["end_time"] = aware_timestamp(d1["time"])
+            data["username"] = user["hostname"]
+            td = timedelta(seconds=(d2["time"] - d1["time"]) / 1000) if d2 else None
+            # If this is the last entry, or the session is about to end
+            if td is None or td > timedelta(minutes=6):
+                yield data, kwargs
+                # Reset data and kwargs so the next session will write new defaults
+                kwargs, data = {}, {}
 
 
 def run():
@@ -117,5 +157,6 @@ def run():
     sync_node_data_rate_metrics(_client)
     sync_node_failures_metrics(_client)
     sync_node_resources_metrics(_client)
+    sync_client_sessions(_client)
     elapsed_time = time.time() - start_time
     print(f"Synced with unifi in {elapsed_time:.2f}s")

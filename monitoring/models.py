@@ -103,6 +103,21 @@ class UnknownNode(models.Model):
         return f"Unknown Node {self.mac} [{self.created}]"
 
 
+class ClientSession(models.Model):
+    """A client session at a given access point."""
+
+    mac = MACAddressField()
+    username = models.CharField(max_length=64)
+    uplink = models.ForeignKey(Node, on_delete=models.CASCADE, related_name="client_sessions")
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    bytes_recv = models.IntegerField()
+    bytes_sent = models.IntegerField()
+
+    def __str__(self):
+        return f"Client Session: {self.username}@{self.uplink} [{self.start_time}-{self.end_time}]"
+
+
 class Service(models.Model):
     """Database table for services."""
 

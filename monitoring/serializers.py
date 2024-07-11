@@ -51,6 +51,20 @@ class AlertSerializer(ModelSerializer):
 
     def get_type(self, alert):
         return alert.type()
+    
+
+class ClientSessionSerializer(ModelSerializer):
+    """Serializes ClientSession objects from django model to JSON."""
+
+    uplink = SerializerMethodField()
+
+    class Meta:
+        """ClientSessionSerializer metadata."""
+        model = models.ClientSession
+        fields = "__all__"
+
+    def get_uplink(self, client_session):
+        return str(client_session.uplink.mac)
 
 
 class NodeSerializer(DynamicFieldsModelSerializer):
@@ -69,6 +83,7 @@ class NodeSerializer(DynamicFieldsModelSerializer):
     num_unresolved_alerts = SerializerMethodField()
     upload_speed = SerializerMethodField()
     download_speed = SerializerMethodField()
+    client_sessions = ClientSessionSerializer(many=True, read_only=True)
 
     def get_status(self, node: models.Node) -> str:
         return node.check_results.status().value

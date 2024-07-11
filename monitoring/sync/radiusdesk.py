@@ -7,8 +7,13 @@ from mysql.connector import connect
 from django.conf import settings
 from django.utils.timezone import make_aware, now
 
-from monitoring.models import Mesh, Node, UnknownNode
-from metrics.models import FailuresMetric, ResourcesMetric, DataUsageMetric, DataRateMetric
+from monitoring.models import Mesh, Node, UnknownNode, ClientSession
+from metrics.models import (
+    FailuresMetric,
+    ResourcesMetric,
+    DataUsageMetric,
+    DataRateMetric,
+)
 from .utils import bulk_sync
 
 
@@ -72,6 +77,17 @@ GET_UNKNOWN_NODES_QUERY = """
 SELECT u.mac, u.vendor, u.from_ip, u.gateway, u.last_contact, u.created, u.name
 FROM unknown_nodes u;
 """
+# This is the most perverse way of joining the radacct tabel to the ap table, but there doesn't
+# seem to be a more direct way to do it - the calledstationid doesn't match an ap (or an ap_station)
+# and I can't link nasidentifiers to APs either!
+GET_CONNECTED_CLIENTS_QUERY = """
+SELECT r.username, ap.mac, r.acctstarttime, r.acctstoptime, r.acctinputoctets, r.acctoutputoctets, r.callingstationid
+FROM radacct r
+JOIN data_collectors d
+ON d.cp_mac = r.calledstationid
+JOIN aps ap
+ON ap.lan_ip = d.public_ip;
+"""
 
 TZ = pytz.timezone("Africa/Johannesburg")
 
@@ -104,7 +120,7 @@ def sync_nodes(cursor):
                 description=description,
                 mac=mac,
                 hardware=hardware,
-                ip=ip or last_contact_from_ip
+                ip=ip or last_contact_from_ip,
             )
             yield data, {"mac": mac}
 
@@ -184,10 +200,41 @@ def sync_node_resources_metrics(cursor):
         for node_mac, mem_total, mem_free in result.fetchall():
             data = dict(
                 mac=node_mac,
-                memory=mem_free/mem_total*100,
+                memory=mem_free / mem_total * 100,
                 cpu=-1,  # Radiusdesk doesn't track CPU usage??
             )
             yield data, {"created": now()}
+
+
+@bulk_sync(ClientSession)
+def sync_client_sessions(cursor):
+    """Sync ClientSession objects from the radiusdesk database."""
+    cursor.execute(GET_CONNECTED_CLIENTS_QUERY)
+    for (
+        username,
+        ap_mac,
+        acctstarttime,
+        acctstoptime,
+        acctinputoctets,
+        acctoutputoctets,
+        callingstationid,
+    ) in cursor.fetchall():
+        data = dict(
+            username=username,
+            bytes_recv=acctinputoctets,
+            bytes_sent=acctoutputoctets,
+        )
+        try:
+            uplink = Node.objects.get(mac=ap_mac)
+        except Node.DoesNotExist:
+            print(f"Skipping uplink {ap_mac}, does not exist")
+            continue
+        yield data, {
+            "mac": callingstationid,
+            "start_time": make_aware(acctstarttime, TZ),
+            "uplink": uplink,
+            "end_time": make_aware(acctstoptime, TZ) if acctstoptime else None,
+        }
 
 
 def run():
@@ -207,5 +254,6 @@ def run():
             sync_node_rates_metrics(cursor)
             sync_node_resources_metrics(cursor)
             sync_node_failures_metrics(cursor)
+            sync_client_sessions(cursor)
             elapsed_time = time.time() - start_time
             print(f"Synced with radiusdesk in {elapsed_time:.2f}s")
