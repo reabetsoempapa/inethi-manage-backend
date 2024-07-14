@@ -114,15 +114,14 @@ def sync_nodes(cursor):
             ip,
             last_contact_from_ip,
         ) in result.fetchall():
-            data = dict(
-                mesh=Mesh.objects.get(name=mesh_name),
-                name=name,
-                description=description,
-                mac=mac,
-                hardware=hardware,
-                ip=ip or last_contact_from_ip,
-            )
-            yield data, {"mac": mac}
+            yield {  # Update fields
+                "mesh": Mesh.objects.get(name=mesh_name),
+                "ip": ip or last_contact_from_ip
+            }, {  # Create fields, these will be set initially but won't be synced
+                "name": name,
+                "description": description,
+                "hardware": hardware
+            }, {"mac": mac}
 
 
 @bulk_sync(UnknownNode)
@@ -134,15 +133,14 @@ def sync_unknown_nodes(cursor):
         # create a new UnknownNode
         if Node.objects.filter(mac=mac).exists():
             continue
-        data = dict(
-            vendor=vendor,
-            from_ip=from_ip,
-            gateway=gateway,
-            last_contact=make_aware(last_contact, TZ),
-            created=make_aware(created, TZ),
-            name=name,
-        )
-        yield data, {"mac": mac}
+        yield {
+            "vendor": vendor,
+            "from_ip": from_ip,
+            "gateway": gateway,
+            "last_contact": make_aware(last_contact, TZ),
+            "created": make_aware(created, TZ),
+            "name": name,
+        }, {"mac": mac}
 
 
 @bulk_sync(DataUsageMetric)
@@ -150,12 +148,11 @@ def sync_node_bytes_metrics(cursor):
     """Sync BytesMetric objects from the radiusdesk database."""
     for result in cursor.execute(GET_NODE_AND_AP_BYTES_QUERY, multi=True):
         for mac, tx_bytes, rx_bytes, created in result.fetchall():
-            data = dict(
-                mac=mac,
-                tx_bytes=tx_bytes,
-                rx_bytes=rx_bytes,
-            )
-            yield data, {"created": make_aware(created, TZ)}
+            yield {
+                "mac": mac,
+                "tx_bytes": tx_bytes,
+                "rx_bytes": rx_bytes,
+            }, {"created": make_aware(created, TZ)}
 
 
 @bulk_sync(DataRateMetric)
@@ -163,12 +160,11 @@ def sync_node_rates_metrics(cursor):
     """Sync DataRateMetric objects from the radiusdesk database."""
     for result in cursor.execute(GET_NODE_AND_AP_RATES_QUERY, multi=True):
         for mac, rx_rate, tx_rate, created in result.fetchall():
-            data = dict(
-                mac=mac,
-                rx_rate=rx_rate,
-                tx_rate=tx_rate,
-            )
-            yield data, {"created": make_aware(created, TZ)}
+            yield {
+                "mac": mac,
+                "rx_rate": rx_rate,
+                "tx_rate": tx_rate,
+            }, {"created": make_aware(created, TZ)}
 
 
 @bulk_sync(FailuresMetric)
@@ -183,14 +179,13 @@ def sync_node_failures_metrics(cursor):
             tx_retries,
             created,
         ) in result.fetchall():
-            data = dict(
-                mac=node_mac,
-                tx_packets=tx_packets,
-                rx_packets=rx_packets,
-                tx_dropped=tx_failed,
-                tx_retries=tx_retries,
-            )
-            yield data, {"created": make_aware(created, TZ)}
+            yield {
+                "mac": node_mac,
+                "tx_packets": tx_packets,
+                "rx_packets": rx_packets,
+                "tx_dropped": tx_failed,
+                "tx_retries": tx_retries,
+            }, {"created": make_aware(created, TZ)}
 
 
 @bulk_sync(ResourcesMetric)
@@ -198,12 +193,11 @@ def sync_node_resources_metrics(cursor):
     """Sync NodeLoad objects from the radiusdesk database."""
     for result in cursor.execute(GET_NODE_AND_AP_RESOURCES_QUERY, multi=True):
         for node_mac, mem_total, mem_free in result.fetchall():
-            data = dict(
-                mac=node_mac,
-                memory=mem_free / mem_total * 100,
-                cpu=-1,  # Radiusdesk doesn't track CPU usage??
-            )
-            yield data, {"created": now()}
+            yield {
+                "mac": node_mac,
+                "memory": mem_free / mem_total * 100,
+                "cpu": -1,  # Radiusdesk doesn't track CPU usage??
+            }, {"created": now()}
 
 
 @bulk_sync(ClientSession)
@@ -219,21 +213,20 @@ def sync_client_sessions(cursor):
         acctoutputoctets,
         callingstationid,
     ) in cursor.fetchall():
-        data = dict(
-            username=username,
-            bytes_recv=acctinputoctets,
-            bytes_sent=acctoutputoctets,
-        )
         try:
             uplink = Node.objects.get(mac=ap_mac)
         except Node.DoesNotExist:
             print(f"Skipping uplink {ap_mac}, does not exist")
             continue
-        yield data, {
+        yield {
+            "username": username,
+            "bytes_recv": acctinputoctets,
+            "bytes_sent": acctoutputoctets,
+            "end_time": make_aware(acctstoptime, TZ) if acctstoptime else None,
+        }, {  # MAC, start time and uplink uniquely identify session
             "mac": callingstationid,
             "start_time": make_aware(acctstarttime, TZ),
             "uplink": uplink,
-            "end_time": make_aware(acctstoptime, TZ) if acctstoptime else None,
         }
 
 

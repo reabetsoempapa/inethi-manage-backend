@@ -32,16 +32,17 @@ def sync_nodes(client):
         )
         name = adoption_details["ap_name"] if adoption_details else device["model"]
         adopt_time = aware_timestamp(device["adopted_at"])
-        data = dict(
-            mesh=Mesh.objects.get(name=device["last_connection_network_name"].lower()),
-            name=name,
-            description="",
-            mac=device["mac"],
-            hardware=device["model"],
-            ip=device["ip"],
-            created=adopt_time,
-        )
-        yield data, {"mac": device["mac"]}
+        yield {  # Update fields
+            "mesh": Mesh.objects.get(name=device["last_connection_network_name"].lower()),
+            "ip": device["ip"],
+            "created": adopt_time
+        }, {  # Create fields, these won't overwrite if this model has already been synced
+            "name": name,
+            "description": "",
+            "hardware": device["model"]
+        }, {  # Lookup fields
+            "mac": device["mac"]
+        }
 
 
 @bulk_sync(DataUsageMetric)
@@ -50,12 +51,11 @@ def sync_node_data_usage_metrics(client):
     aps = client.ace_stat.stat_hourly.find({"o": "ap"})
     for ap in aps:
         ap_time = aware_timestamp(ap["time"])
-        data = dict(
-            mac=ap["ap"],
-            tx_bytes=ap.get("tx_bytes"),
-            rx_bytes=ap.get("rx_bytes"),
-        )
-        yield data, {"created": ap_time}
+        yield {
+            "mac": ap["ap"],
+            "tx_bytes": ap.get("tx_bytes"),
+            "rx_bytes": ap.get("rx_bytes"),
+        }, {"created": ap_time}
 
 
 @bulk_sync(DataRateMetric)
@@ -65,12 +65,11 @@ def sync_node_data_rate_metrics(client):
     for ap in aps:
         ap_time = aware_timestamp(ap["time"])
         bytes_per_5mins_to_bits_per_second = 8 / 5 / 60
-        data = dict(
-            mac=ap["ap"],
-            tx_rate=ap.get("client-tx_bytes") * bytes_per_5mins_to_bits_per_second,
-            rx_rate=ap.get("client-rx_bytes") * bytes_per_5mins_to_bits_per_second,
-        )
-        yield data, {"created": ap_time}
+        yield {
+            "mac": ap["ap"],
+            "tx_rate": ap.get("client-tx_bytes") * bytes_per_5mins_to_bits_per_second,
+            "rx_rate": ap.get("client-rx_bytes") * bytes_per_5mins_to_bits_per_second,
+        }, {"created": ap_time}
 
 
 @bulk_sync(FailuresMetric)
@@ -79,17 +78,16 @@ def sync_node_failures_metrics(client):
     aps = client.ace_stat.stat_hourly.find({"o": "ap"})
     for ap in aps:
         ap_time = aware_timestamp(ap["time"])
-        data = dict(
-            mac=ap["ap"],
-            tx_packets=ap.get("tx_packets"),
-            rx_packets=ap.get("rx_packets"),
-            tx_dropped=ap.get("tx_dropped"),
-            rx_dropped=ap.get("rx_dropped"),
-            tx_errors=ap.get("tx_failed"),
-            rx_errors=ap.get("rx_failed"),
-            tx_retries=ap.get("tx_retries"),
-        )
-        yield data, {"created": ap_time}
+        yield {
+            "mac": ap["ap"],
+            "tx_packets": ap.get("tx_packets"),
+            "rx_packets": ap.get("rx_packets"),
+            "tx_dropped": ap.get("tx_dropped"),
+            "rx_dropped": ap.get("rx_dropped"),
+            "tx_errors": ap.get("tx_failed"),
+            "rx_errors": ap.get("rx_failed"),
+            "tx_retries": ap.get("tx_retries"),
+        }, {"created": ap_time}
 
 
 @bulk_sync(ResourcesMetric)
@@ -98,12 +96,11 @@ def sync_node_resources_metrics(client):
     aps = client.ace_stat.stat_hourly.find({"o": "ap"})
     for ap in aps:
         ap_time = aware_timestamp(ap["time"])
-        data = dict(
-            mac=ap["ap"],
-            memory=ap.get("mem"),
-            cpu=ap.get("cpu"),
-        )
-        yield data, {"created": ap_time}
+        yield {
+            "mac": ap["ap"],
+            "memory": ap.get("mem"),
+            "cpu": ap.get("cpu"),
+        }, {"created": ap_time}
 
 
 @bulk_sync(ClientSession)

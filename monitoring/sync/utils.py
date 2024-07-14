@@ -13,8 +13,15 @@ def bulk_sync(ModelType: Type[models.Model], delete: bool = False):
         def inner(cursor):
             ids_to_delete = set(ModelType.objects.values_list("pk", flat=True))
             n_added, n_updated = 0, 0
-            for defaults, kwargs in syncfunc(cursor):
-                model, created = ModelType.objects.update_or_create(defaults, **kwargs)
+            for result in syncfunc(cursor):
+                create_defaults = None
+                if len(result) == 2:
+                    update_defaults, kwargs = result
+                else:
+                    update_defaults, create_defaults, kwargs = result
+                model, created = ModelType.objects.update_or_create(
+                    defaults=update_defaults, create_defaults=create_defaults, **kwargs
+                )
                 if created:
                     n_added += 1
                 else:
