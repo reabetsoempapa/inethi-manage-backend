@@ -1,31 +1,23 @@
+from asgiref.sync import async_to_sync
 from celery import shared_task
 from celery.utils.log import get_task_logger
+import channels.layers
 
 from .sync.radiusdesk import run as syncrd
 from .sync.unifi import run as syncunifi
 from .checks import CheckStatus
 from .models import Node, Alert
+from .serializers import NodeSerializer
 
 logger = get_task_logger(__name__)
 
 
 @shared_task
-def run_syncrd() -> None:
-    """Celery task to sync the Django database with radiusdesk's mysql db."""
+def run_sync() -> None:
     logger.info("Syncing with radiusdesk")
     syncrd()
-
-
-@shared_task
-def run_syncunifi() -> None:
-    """Celery task to sync the Django database with unifi's mongodb."""
     logger.info("Syncing with unifi")
     syncunifi()
-
-
-@shared_task
-def generate_alerts() -> None:
-    """Celery task to monitor for alerts, generates them if necessary."""
     logger.info("Generating alerts")
     for n in Node.objects.all():
         current_status = n.check_results.status()
@@ -48,3 +40,13 @@ def generate_alerts() -> None:
         # is assumed to have been resolved.
         alerts_worse_than_current_status = unresolved_alerts.filter(level__gt=current_status_level)
         alerts_worse_than_current_status.update(resolved=True)
+    # TODO: Ideally this should only be triggered when
+    # devices actually change, but for now we'll just call
+    # it every time a sync task is run.
+    logger.info("Syncing devices")
+    serializer = NodeSerializer(Node.objects.all(), many=True)
+    channel_layer = channels.layers.get_channel_layer()
+    async_to_sync(channel_layer.group_send)('updates_group', {
+        "type": "update.devices",
+        "data": serializer.data
+    })

@@ -269,28 +269,26 @@ CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:6379/0"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = False
 
+# Channels config
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [f'redis://{REDIS_HOST}/1'],
+        },
+    },
+}
+
 CELERY_BEAT_SCHEDULE = {
     "ping_schedule": {
         "task": "metrics.tasks.run_pings",
         # Executes ping every 5 min
         "schedule": timedelta(minutes=5),
     },
-    "syncrd_schedule": {
-        "task": "monitoring.tasks.run_syncrd",
-        # Executes db sync every 15 min
-        "schedule": timedelta(minutes=15),
-    },
-    "syncunifi_schedule": {
-        "task": "monitoring.tasks.run_syncunifi",
-        # Executes db sync every 15 min. Slightly
-        # offset from syncrd_schedule to prevent
-        # database concurrency issues
-        "schedule": timedelta(minutes=14),
-    },
-    "alerts_schedule": {
-        "task": "monitoring.tasks.generate_alerts",
-        # Executes alert monitoring every 2 min
-        "schedule": timedelta(minutes=2)
+    "sync_schedule": {
+        "task": "monitoring.tasks.run_sync",
+        # Executes db sync every 10 min
+        "schedule": timedelta(minutes=10),
     }
 }
 
