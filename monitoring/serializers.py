@@ -88,8 +88,8 @@ class NodeSerializer(DynamicFieldsModelSerializer):
     def get_status(self, node: models.Node) -> str:
         return node.check_results.status().value
 
-    def get_last_contact(self, node: models.Node) -> datetime | None:
-        return node.get_last_contacted_time()
+    def get_last_contact(self, node: models.Node) -> str | None:
+        return str(node.get_last_contacted_time())
 
     def get_checks(self, node: models.Node) -> list[dict]:
         """Run checks defined in settings.DEVICE_CHECKS"""
