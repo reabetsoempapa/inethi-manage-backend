@@ -48,36 +48,48 @@ def sync_nodes(client):
 @bulk_sync(DataUsageMetric)
 def sync_node_data_usage_metrics(client):
     """Sync DataUsageMetric objects from the unifi database."""
+    latest_metric = DataUsageMetric.objects.last()
+    last_created = latest_metric.created if latest_metric else None
     aps = client.ace_stat.stat_hourly.find({"o": "ap"})
     for ap in aps:
-        ap_time = aware_timestamp(ap["time"])
+        created_aware = aware_timestamp(ap["time"])
+        if last_created and created_aware < last_created:
+                continue
         yield {
             "mac": ap["ap"],
             "tx_bytes": ap.get("tx_bytes"),
             "rx_bytes": ap.get("rx_bytes"),
-        }, {"created": ap_time}
+        }, {"created": created_aware}
 
 
 @bulk_sync(DataRateMetric)
 def sync_node_data_rate_metrics(client):
     """Sync DataRateMetric objects from the unifi database."""
+    latest_metric = DataRateMetric.objects.last()
+    last_created = latest_metric.created if latest_metric else None
     aps = client.ace_stat.stat_5minutes.find({"o": "ap"})
     for ap in aps:
-        ap_time = aware_timestamp(ap["time"])
+        created_aware = aware_timestamp(ap["time"])
+        if last_created and created_aware < last_created:
+                continue
         bytes_per_5mins_to_bits_per_second = 8 / 5 / 60
         yield {
             "mac": ap["ap"],
             "tx_rate": ap.get("client-tx_bytes") * bytes_per_5mins_to_bits_per_second,
             "rx_rate": ap.get("client-rx_bytes") * bytes_per_5mins_to_bits_per_second,
-        }, {"created": ap_time}
+        }, {"created": created_aware}
 
 
 @bulk_sync(FailuresMetric)
 def sync_node_failures_metrics(client):
     """Sync FailuresMetric objects from the unifi database."""
+    latest_metric = FailuresMetric.objects.last()
+    last_created = latest_metric.created if latest_metric else None
     aps = client.ace_stat.stat_hourly.find({"o": "ap"})
     for ap in aps:
-        ap_time = aware_timestamp(ap["time"])
+        created_aware = aware_timestamp(ap["time"])
+        if last_created and created_aware < last_created:
+                continue
         yield {
             "mac": ap["ap"],
             "tx_packets": ap.get("tx_packets"),
@@ -87,20 +99,24 @@ def sync_node_failures_metrics(client):
             "tx_errors": ap.get("tx_failed"),
             "rx_errors": ap.get("rx_failed"),
             "tx_retries": ap.get("tx_retries"),
-        }, {"created": ap_time}
+        }, {"created": created_aware}
 
 
 @bulk_sync(ResourcesMetric)
 def sync_node_resources_metrics(client):
     """Sync NodeLoad objects from the unifi database."""
+    latest_metric = ResourcesMetric.objects.last()
+    last_created = latest_metric.created if latest_metric else None
     aps = client.ace_stat.stat_hourly.find({"o": "ap"})
     for ap in aps:
-        ap_time = aware_timestamp(ap["time"])
+        created_aware = aware_timestamp(ap["time"])
+        if last_created and created_aware < last_created:
+                continue
         yield {
             "mac": ap["ap"],
             "memory": ap.get("mem"),
             "cpu": ap.get("cpu"),
-        }, {"created": ap_time}
+        }, {"created": created_aware}
 
 
 @bulk_sync(ClientSession)

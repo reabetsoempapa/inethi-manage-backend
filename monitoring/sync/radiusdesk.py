@@ -146,30 +146,42 @@ def sync_unknown_nodes(cursor):
 @bulk_sync(DataUsageMetric)
 def sync_node_bytes_metrics(cursor):
     """Sync BytesMetric objects from the radiusdesk database."""
+    latest_metric = DataUsageMetric.objects.last()
+    last_created = latest_metric.created if latest_metric else None
     for result in cursor.execute(GET_NODE_AND_AP_BYTES_QUERY, multi=True):
         for mac, tx_bytes, rx_bytes, created in result.fetchall():
+            created_aware = make_aware(created, TZ)
+            if last_created and created_aware < last_created:
+                continue
             yield {
                 "mac": mac,
                 "tx_bytes": tx_bytes,
                 "rx_bytes": rx_bytes,
-            }, {"created": make_aware(created, TZ)}
+            }, {"created": created_aware}
 
 
 @bulk_sync(DataRateMetric)
 def sync_node_rates_metrics(cursor):
     """Sync DataRateMetric objects from the radiusdesk database."""
+    latest_metric = DataRateMetric.objects.last()
+    last_created = latest_metric.created if latest_metric else None
     for result in cursor.execute(GET_NODE_AND_AP_RATES_QUERY, multi=True):
         for mac, rx_rate, tx_rate, created in result.fetchall():
+            created_aware = make_aware(created, TZ)
+            if last_created and created_aware < last_created:
+                continue
             yield {
                 "mac": mac,
                 "rx_rate": rx_rate,
                 "tx_rate": tx_rate,
-            }, {"created": make_aware(created, TZ)}
+            }, {"created": created_aware}
 
 
 @bulk_sync(FailuresMetric)
 def sync_node_failures_metrics(cursor):
     """Sync FailuresMetric objects from the radiusdesk database."""
+    latest_metric = FailuresMetric.objects.last()
+    last_created = latest_metric.created if latest_metric else None
     for result in cursor.execute(GET_NODE_AND_AP_FAILURES_QUERY, multi=True):
         for (
             node_mac,
@@ -179,13 +191,16 @@ def sync_node_failures_metrics(cursor):
             tx_retries,
             created,
         ) in result.fetchall():
+            created_aware = make_aware(created, TZ)
+            if last_created and created_aware < last_created:
+                continue
             yield {
                 "mac": node_mac,
                 "tx_packets": tx_packets,
                 "rx_packets": rx_packets,
                 "tx_dropped": tx_failed,
                 "tx_retries": tx_retries,
-            }, {"created": make_aware(created, TZ)}
+            }, {"created": created_aware}
 
 
 @bulk_sync(ResourcesMetric)

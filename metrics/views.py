@@ -5,74 +5,72 @@ from . import models
 from . import serializers
 
 
-class FilterByDeviceMacMixin:
-    """Allow filtering a view's query set for a particular node."""
+class FilterMixin:
+    """Allow filtering a view's query set."""
 
     MAC_FIELD = "mac"
-
-    def filter_queryset(self, qs):
-        """Filter against a 'mac' parameter in the request query."""
-        qs = super().filter_queryset(qs)
-        mac = self.request.query_params.get(self.MAC_FIELD)
-        if mac is not None:
-            qs = qs.filter(mac=mac)
-        return qs
-
-
-class FilterByMinTimeMixin:
-    """Allow filtering a view's query set on a particular min time range."""
-
     MIN_TIME_FIELD = "min_time"
+    GRANULARITY_FIELD = "granularity"
 
     def filter_queryset(self, qs):
         """Filter against a 'min_time' parameter in the request query."""
         qs = super().filter_queryset(qs)
+        mac = self.request.query_params.get(self.MAC_FIELD)
         min_time = self.request.query_params.get(self.MIN_TIME_FIELD)
-        if not min_time:
-            return qs
-        try:
-            min_time_int = int(min_time)
-        except ValueError:
-            return qs
-        return qs.filter(created__gt=datetime.fromtimestamp(min_time_int))
+        granularity = self.request.query_params.get(self.GRANULARITY_FIELD)
+        if mac is not None:
+            qs = qs.filter(mac=mac)
+        if min_time is not None:
+            try:
+                min_time_int = int(min_time)
+                qs = qs.filter(created__gt=datetime.fromtimestamp(min_time_int))
+            except ValueError:
+                pass
+        if granularity is not None:
+            try:
+                g = models.Metric.Granularity[granularity]
+                qs = qs.filter(granularity=g)
+            except KeyError:
+                pass
+        return qs
 
 
-class UptimeViewSet(FilterByMinTimeMixin, FilterByDeviceMacMixin, ModelViewSet):
+class UptimeViewSet(FilterMixin, ModelViewSet):
     """View/Edit/Add/Delete UptimeMetric items."""
 
     queryset = models.UptimeMetric.objects.all()
     serializer_class = serializers.UptimeMetricSerializer
 
 
-class FailuresViewSet(FilterByMinTimeMixin, FilterByDeviceMacMixin, ModelViewSet):
+class FailuresViewSet(FilterMixin, ModelViewSet):
     """View/Edit/Add/Delete FailuresMetric items."""
 
     queryset = models.FailuresMetric.objects.all()
     serializer_class = serializers.FailuresMetricSerializer
 
 
-class RTTViewSet(FilterByMinTimeMixin, FilterByDeviceMacMixin, ModelViewSet):
+class RTTViewSet(FilterMixin, ModelViewSet):
     """View/Edit/Add/Delete RTTMetric items."""
 
     queryset = models.RTTMetric.objects.all()
     serializer_class = serializers.RTTMetricSerializer
 
 
-class ResourcesViewSet(FilterByMinTimeMixin, FilterByDeviceMacMixin, ModelViewSet):
+class ResourcesViewSet(FilterMixin, ModelViewSet):
     """View/Edit/Add/Delete ResourcesMetric items."""
 
     queryset = models.ResourcesMetric.objects.all()
     serializer_class = serializers.ResourcesMetricSerializer
 
 
-class DataUsageViewSet(FilterByMinTimeMixin, FilterByDeviceMacMixin, ModelViewSet):
+class DataUsageViewSet(FilterMixin, ModelViewSet):
     """View/Edit/Add/Delete DataUsageMetric items."""
 
     queryset = models.DataUsageMetric.objects.all()
     serializer_class = serializers.DataUsageMetricSerializer
 
 
-class DataRateViewSet(FilterByMinTimeMixin, FilterByDeviceMacMixin, ModelViewSet):
+class DataRateViewSet(FilterMixin, ModelViewSet):
     """View/Edit/Add/Delete DataRateMetric items."""
 
     queryset = models.DataRateMetric.objects.all()

@@ -289,6 +289,18 @@ CELERY_BEAT_SCHEDULE = {
         "task": "monitoring.tasks.run_sync",
         # Executes db sync every 10 min
         "schedule": timedelta(minutes=10),
+    },
+    "aggregate_hourly": {
+        "task": "metrics.tasks.aggregate_all_hourly_metrics",
+        "schedule": timedelta(hours=1),
+    },
+    "aggregate_daily": {
+        "task": "metrics.tasks.aggregate_all_daily_metrics",
+        "schedule": timedelta(days=1),
+    },
+    "aggregate_monthly": {
+        "task": "metrics.tasks.aggregate_all_monthly_metrics",
+        "schedule": timedelta(days=30),
     }
 }
 
