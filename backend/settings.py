@@ -60,7 +60,6 @@ INSTALLED_APPS = [
 # Keycloak config
 AUTHENTICATION_BACKENDS = ["django_keycloak.backends.KeycloakAuthorizationCodeBackend"]
 LOGIN_URL = "keycloak_login"
-AUTH_USER_MODEL = "django_keycloak.KeycloakUser"
 KEYCLOAK_CLIENTS = {
     "DEFAULT": {
         "URL": os.environ["KEYCLOAK_URL"],
