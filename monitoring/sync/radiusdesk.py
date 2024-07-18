@@ -6,6 +6,7 @@ import time
 from mysql.connector import connect
 from django.conf import settings
 from django.utils.timezone import make_aware, now
+from django.contrib.auth.models import User
 
 from monitoring.models import Mesh, Node, UnknownNode, ClientSession
 from metrics.models import (
@@ -115,10 +116,10 @@ def sync_nodes(cursor):
             last_contact_from_ip,
         ) in result.fetchall():
             yield {  # Update fields
-                "mesh": Mesh.objects.get(name=mesh_name),
                 "ip": ip or last_contact_from_ip
             }, {  # Create fields, these will be set initially but won't be synced
                 "name": name,
+                "mesh": Mesh.objects.get(name=mesh_name),
                 "description": description,
                 "hardware": hardware
             }, {"mac": mac}
@@ -218,6 +219,12 @@ def sync_node_resources_metrics(cursor):
 @bulk_sync(ClientSession)
 def sync_client_sessions(cursor):
     """Sync ClientSession objects from the radiusdesk database."""
+    # Side effect of the crappy join is that sometimes when an IP changes,
+    # ya lose information on the data collectors
+    # cursor.execute("SELECT mac, lan_ip FROM aps;")
+    # print(cursor.fetchall())
+    # cursor.execute("SELECT cp_mac, public_ip FROM data_collectors;")
+    # print(cursor.fetchall())
     cursor.execute(GET_CONNECTED_CLIENTS_QUERY)
     for (
         username,
@@ -233,8 +240,9 @@ def sync_client_sessions(cursor):
         except Node.DoesNotExist:
             print(f"Skipping uplink {ap_mac}, does not exist")
             continue
+        user, _ = User.objects.get_or_create(username=username)
         yield {
-            "username": username,
+            "user": user,
             "bytes_recv": acctinputoctets,
             "bytes_sent": acctoutputoctets,
             "end_time": make_aware(acctstoptime, TZ) if acctstoptime else None,

@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from pymongo import MongoClient
 from django.conf import settings
+from django.contrib.auth.models import User
 
 from monitoring.models import Mesh, Node, ClientSession
 from metrics.models import (
@@ -33,11 +34,11 @@ def sync_nodes(client):
         name = adoption_details["ap_name"] if adoption_details else device["model"]
         adopt_time = aware_timestamp(device["adopted_at"])
         yield {  # Update fields
-            "mesh": Mesh.objects.get(name=device["last_connection_network_name"].lower()),
             "ip": device["ip"],
             "created": adopt_time
         }, {  # Create fields, these won't overwrite if this model has already been synced
             "name": name,
+            "mesh": Mesh.objects.get(name=device["last_connection_network_name"].lower()),
             "description": "",
             "hardware": device["model"]
         }, {  # Lookup fields
@@ -128,6 +129,7 @@ def sync_client_sessions(client: MongoClient):
     cursor = client.ace_stat.stat_5minutes.find({"o": "user"})
     for user_mac in cursor.distinct("user"):
         user = client.ace.user.find_one({"mac": user_mac})
+        django_user, _ = User.objects.get_or_create(username=user["hostname"])
         # Could not find this user, skip
         if not user:
             continue
@@ -147,7 +149,7 @@ def sync_client_sessions(client: MongoClient):
             data["bytes_recv"] = data.get("bytes_recv", 0) + d1["rx_bytes"]
             data["bytes_sent"] = data.get("bytes_sent", 0) + d1["tx_bytes"]
             data["end_time"] = aware_timestamp(d1["time"])
-            data["username"] = user["hostname"]
+            data["user"] = django_user
             td = timedelta(seconds=(d2["time"] - d1["time"]) / 1000) if d2 else None
             # If this is the last entry, or the session is about to end
             if td is None or td > timedelta(minutes=6):

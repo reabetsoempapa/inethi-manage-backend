@@ -1,5 +1,6 @@
 from datetime import datetime
 from django.utils.functional import cached_property
+from django.contrib.auth.models import User
 from django.db import models
 from macaddress.fields import MACAddressField
 
@@ -41,7 +42,9 @@ class Node(models.Model):
     @cached_property
     def last_rate_metric(self) -> DataRateMetric | None:
         """Get the last data rate metric for this node."""
-        qs = DataRateMetric.objects.filter(mac=self.mac, tx_rate__isnull=False, rx_rate__isnull=False)
+        qs = DataRateMetric.objects.filter(
+            mac=self.mac, tx_rate__isnull=False, rx_rate__isnull=False
+        )
         return qs.order_by("-created").first()
 
     @cached_property
@@ -107,15 +110,17 @@ class ClientSession(models.Model):
     """A client session at a given access point."""
 
     mac = MACAddressField()
-    username = models.CharField(max_length=64)
-    uplink = models.ForeignKey(Node, on_delete=models.CASCADE, related_name="client_sessions")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sessions")
+    uplink = models.ForeignKey(
+        Node, on_delete=models.CASCADE, related_name="client_sessions"
+    )
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     bytes_recv = models.IntegerField()
     bytes_sent = models.IntegerField()
 
     def __str__(self):
-        return f"Client Session: {self.username}@{self.uplink} [{self.start_time}-{self.end_time}]"
+        return f"Client Session: {self.user.username}@{self.uplink} [{self.start_time}-{self.end_time}]"
 
 
 class Service(models.Model):
@@ -155,18 +160,15 @@ class Alert(models.Model):
     @classmethod
     def from_status(cls, node: Node, status: CheckStatus) -> "Alert":
         """Generate an alert from a node's status."""
-        return cls(level=status.alert_level(),
-                   text=node.check_results.alert_summary(),
-                   node=node)
+        return cls(
+            level=status.alert_level(),
+            text=node.check_results.alert_summary(),
+            node=node,
+        )
 
     def type(self) -> str:
         """Alert type name."""
-        return {
-            3: "Critical",
-            2: "Warning",
-            1: "Decent",
-            0: "OK"
-        }[self.level]
+        return {3: "Critical", 2: "Warning", 1: "Decent", 0: "OK"}[self.level]
 
     def __str__(self):
         return f"Alert for {self.node} level={self.level} [{self.created}]"

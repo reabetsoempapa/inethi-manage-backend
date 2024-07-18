@@ -1,5 +1,9 @@
-from datetime import datetime
-from rest_framework.serializers import ModelSerializer, PrimaryKeyRelatedField, SerializerMethodField
+from rest_framework.serializers import (
+    ModelSerializer,
+    PrimaryKeyRelatedField,
+    SerializerMethodField,
+    SlugRelatedField
+)
 from dynamic_fields.serializers import DynamicFieldsModelSerializer
 
 from . import models
@@ -10,6 +14,7 @@ class MeshSerializer(ModelSerializer):
 
     class Meta:
         """MeshSerializer metadata."""
+
         model = models.Mesh
         fields = "__all__"
 
@@ -19,6 +24,7 @@ class UnknownNodeSerializer(ModelSerializer):
 
     class Meta:
         """UnknownNodeSerializer metadata."""
+
         model = models.UnknownNode
         fields = "__all__"
 
@@ -28,6 +34,7 @@ class ServiceSerializer(ModelSerializer):
 
     class Meta:
         """ServiceSerializer metadata."""
+
         model = models.Service
         fields = "__all__"
 
@@ -40,6 +47,7 @@ class AlertSerializer(ModelSerializer):
 
     class Meta:
         """ServiceSerializer metadata."""
+
         model = models.Alert
         fields = "__all__"
 
@@ -51,15 +59,17 @@ class AlertSerializer(ModelSerializer):
 
     def get_type(self, alert):
         return alert.type()
-    
+
 
 class ClientSessionSerializer(ModelSerializer):
     """Serializes ClientSession objects from django model to JSON."""
 
     uplink = SerializerMethodField()
+    user = SlugRelatedField(read_only=True, slug_field="username")
 
     class Meta:
         """ClientSessionSerializer metadata."""
+
         model = models.ClientSession
         fields = "__all__"
 
@@ -72,6 +82,7 @@ class NodeSerializer(DynamicFieldsModelSerializer):
 
     class Meta:
         """Node metadata."""
+
         model = models.Node
         fields = "__all__"
 
