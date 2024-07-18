@@ -1,13 +1,17 @@
-from django.shortcuts import render
+import os
+import json
+
+from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView, Response
 from rest_framework import status
+from django.contrib.auth.models import User as AuthUser
+from django.conf import settings
 from web3 import Web3
 from dotenv import load_dotenv
-import os
+
+from . import serializers
 from .models import Wallet, decrypt_private_key
 from users.models import User
-import json
-from django.conf import settings
 
 load_dotenv()
 
@@ -127,3 +131,10 @@ class SendToken(APIView):
         receipt = send_token(w3, chain_id, contract, sender_address, recipient_address, amount, private_key)
         print(receipt)
         return Response({"message": 'successfully sent'}, status=status.HTTP_200_OK)
+
+
+class UserViewSet(ModelViewSet):
+    """View/Edit/Add/Delete User items."""
+
+    queryset = AuthUser.objects.all()
+    serializer_class = serializers.UserSerializer
