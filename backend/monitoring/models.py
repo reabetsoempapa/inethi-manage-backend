@@ -123,24 +123,6 @@ class ClientSession(models.Model):
         return f"Client Session: {self.user.username}@{self.uplink} [{self.start_time}-{self.end_time}]"
 
 
-class Service(models.Model):
-    """Database table for services."""
-
-    SERVICE_TYPES = (
-        ("utility", "Utility"),
-        ("entertainment", "Entertainment"),
-        ("games", "Games"),
-        ("education", "Education"),
-    )
-
-    API_LOCATIONS = (("cloud", "Cloud"), ("local", "Local"))
-
-    url = models.URLField(max_length=100, unique=True)
-    name = models.CharField(max_length=20, unique=True)
-    service_type = models.CharField(max_length=20, choices=SERVICE_TYPES)
-    api_location = models.CharField(max_length=10, choices=API_LOCATIONS)
-
-
 class Alert(models.Model):
     """Alert sent to network managers."""
 

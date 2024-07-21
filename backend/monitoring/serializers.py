@@ -29,16 +29,6 @@ class UnknownNodeSerializer(ModelSerializer):
         fields = "__all__"
 
 
-class ServiceSerializer(ModelSerializer):
-    """Serializes Service objects from django model to JSON."""
-
-    class Meta:
-        """ServiceSerializer metadata."""
-
-        model = models.Service
-        fields = "__all__"
-
-
 class AlertSerializer(ModelSerializer):
     """Serializes Alert objects from django model to JSON."""
 

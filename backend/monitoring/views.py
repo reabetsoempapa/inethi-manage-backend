@@ -27,13 +27,6 @@ class NodeViewSet(DynamicFieldsViewMixin, ModelViewSet):
     serializer_class = serializers.NodeSerializer
 
 
-class ServiceViewSet(ModelViewSet):
-    """View/Edit/Add/Delete Service items."""
-
-    queryset = models.Service.objects.all()
-    serializer_class = serializers.ServiceSerializer
-
-
 class AlertsViewSet(ModelViewSet):
     """View/Edit/Add/Delete Alert items."""
 

@@ -5,7 +5,6 @@ from . import views
 
 router = DefaultRouter()
 router.register("devices", views.NodeViewSet)
-router.register("services", views.ServiceViewSet)
 router.register("alerts", views.AlertsViewSet)
 router.register("meshes", views.MeshViewSet)
 router.register("unknown_nodes", views.UnknownNodeViewSet)
