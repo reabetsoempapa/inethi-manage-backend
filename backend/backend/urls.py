@@ -25,6 +25,7 @@ urlpatterns = [
     path("admin/", include("django_keycloak.urls")),
     path("admin/", admin.site.urls),
 
+    path("accounts/", include("accounts.urls")),
     path("monitoring/", include("monitoring.urls")),
     path("metrics/", include("metrics.urls")),
 

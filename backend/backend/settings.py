@@ -30,12 +30,25 @@ SECRET_KEY = os.environ["SECRET_KEY"]
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ["DEBUG"] == "True"
 
-ALLOWED_HOSTS = ['127.0.0.1', 'manage.inethicloud.net', 'manage.inethilocal.net', 'manage-backend.inethilocal.net',
-                 'manage-backend.inethicloud.net']
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "manage.inethicloud.net",
+    "manage.inethilocal.net",
+    "manage-backend.inethilocal.net",
+    "manage-backend.inethicloud.net",
+]
 
-CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://127.0.0.1:3000', 'https://manage.inethilocal.net',
-                        'https://manage.inethicloud.net', 'https://manage-backend.inethilocal.net',
-                        'https://manage-backend.inethicloud.net']
+CSRF_TRUSTED_ORIGINS = [
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+    "https://manage.inethilocal.net",
+    "https://manage.inethicloud.net",
+    "https://manage-backend.inethilocal.net",
+    "https://manage-backend.inethicloud.net",
+]
 
 # CORS settings for development. For production, consider specifying CORS_ALLOWED_ORIGINS.
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # For development
@@ -53,6 +66,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "django_keycloak",
+    "accounts",
     "monitoring",
     "metrics",
     "service_monitor",
@@ -282,7 +296,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [f'redis://{REDIS_HOST}/1'],
+            "hosts": [f"redis://{REDIS_HOST}/1"],
         },
     },
 }
@@ -309,7 +323,7 @@ CELERY_BEAT_SCHEDULE = {
     "aggregate_monthly": {
         "task": "metrics.tasks.aggregate_all_monthly_metrics",
         "schedule": timedelta(days=30),
-    }
+    },
 }
 
 LOGGING = {
