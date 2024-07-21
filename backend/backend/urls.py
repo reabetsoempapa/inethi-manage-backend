@@ -17,11 +17,32 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from service_monitor.views import ListServices, AddService, DeleteService, EditService, ListServicesByType
+from wallet.views import CreateWallet, SendToken, CheckBalance, CheckWallet, CheckDetails
+from users.views import UserKeycloakAttributes, RegisterKeycloakUser
 
 urlpatterns = [
     path("admin/", include("django_keycloak.urls")),
     path("admin/", admin.site.urls),
+
     path("monitoring/", include("monitoring.urls")),
     path("metrics/", include("metrics.urls")),
-    path("wallet/", include("wallet.urls"))
+
+    # services
+    path('service/list/', ListServices.as_view()),
+    path('service/add/', AddService.as_view()),
+    path('service/delete/<str:service_name>/', DeleteService.as_view()),
+    path('service/edit/<str:service_name>/', EditService.as_view()),
+    path('service/list-by-type/', ListServicesByType.as_view()),
+
+    # wallets
+    path('wallet/create/', CreateWallet.as_view()),
+    path('wallet/send-token/', SendToken.as_view()),
+    path('wallet/balance/', CheckBalance.as_view()),
+    path('wallet/ownership/', CheckWallet.as_view()),
+    path('wallet/details/', CheckDetails.as_view()),
+
+    # user
+    path('user/keycloak/attributes/', UserKeycloakAttributes.as_view()),
+    path('user/keycloak/register/', RegisterKeycloakUser.as_view())
 ]

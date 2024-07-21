@@ -20,7 +20,7 @@ class ListServices(APIView):
 
 
 class ListServicesByType(APIView):
-    permission_classes = [IsAdminUser]
+
 
     def get(self, request):
         # Using defaultdict to automatically handle new service types

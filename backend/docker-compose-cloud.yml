@@ -1,0 +1,38 @@
+version: '3'
+
+services:
+  inethi-manage-mysql:
+    container_name: inethi-manage-mysql
+    image: mysql:latest
+    environment:
+      MYSQL_DATABASE: 'manage'
+      MYSQL_USER: 'inethi'
+      MYSQL_PASSWORD: 'iNethi2023#'
+      MYSQL_ROOT_PASSWORD: 'iNethi2023#'
+    volumes:
+      - manage_db:/var/lib/mysql
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.manageMysql.entrypoints=websecure"
+
+  inethi-manage:
+    container_name: inethi-manage
+    build:
+      context: .
+    depends_on:
+      - inethi-manage-mysql
+    volumes:
+      - "/mnt/data/prometheus/prometheus-config/prometheus.yml:/app/prometheus.yml"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.manageBackend.rule=Host(`manage-backend.inethicloud.net`)"
+      - "traefik.http.routers.manageBackend.entrypoints=websecure"
+      - "traefik.http.services.manageBackend.loadbalancer.server.port=8000"
+
+networks:
+  default:
+    external:
+      name: "inethi-bridge-traefik"
+
+volumes:
+  manage_db:
