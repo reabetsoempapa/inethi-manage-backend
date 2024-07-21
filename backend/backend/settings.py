@@ -30,10 +30,12 @@ SECRET_KEY = os.environ["SECRET_KEY"]
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ["DEBUG"] == "True"
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ['127.0.0.1', 'manage.inethicloud.net', 'manage.inethilocal.net', 'manage-backend.inethilocal.net',
+                 'manage-backend.inethicloud.net']
 
-# Update CSRF_TRUSTED_ORIGINS to include your React app's domain
-CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]
+CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://127.0.0.1:3000', 'https://manage.inethilocal.net',
+                        'https://manage.inethicloud.net', 'https://manage-backend.inethilocal.net',
+                        'https://manage-backend.inethicloud.net']
 
 # CORS settings for development. For production, consider specifying CORS_ALLOWED_ORIGINS.
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # For development
@@ -200,6 +202,12 @@ if DEBUG:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
+            # 'ENGINE': 'django.db.backends.mysql',
+            # 'NAME': 'manage',
+            # 'USER': 'inethi',
+            # 'PASSWORD': 'iNethi2023#',
+            # 'HOST': 'inethi-manage-mysql',
+            # 'PORT': '3306',
         },
         "metrics_db": {
             "ENGINE": "django.db.backends.sqlite3",

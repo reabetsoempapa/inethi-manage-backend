@@ -23,15 +23,16 @@ class UserKeycloakAttributes(APIView):
             attributes['username'] = username
             roles = decoded_token.get('realm_access', {}).get('roles', [])
             attributes['create_wallet'] = False
-            if 'wallet' in roles:
+
+            if 'create_wallet' in roles:
                 attributes['create_wallet'] = True
             return Response({'attributes': attributes}, status=status.HTTP_200_OK)
         except IndexError:
             logger.error("Authorization header is malformed.")
-            return Response({"detail": "Malformed Authorization header."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "Malformed Authorization header."}, status=status.HTTP_400_BAD_REQUEST)
         except ExpiredSignatureError:
             logger.error("Token has expired.")
-            return Response({"detail": "Token has expired."}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"message": "Token has expired."}, status=status.HTTP_401_UNAUTHORIZED)
         except JWTError as e:
             logger.error(f"JWT Error: {e}")
-            return Response({"detail": "Invalid token."}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"message": "Invalid token."}, status=status.HTTP_401_UNAUTHORIZED)
