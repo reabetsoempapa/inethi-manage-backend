@@ -33,6 +33,7 @@ django-rest-framework==0.1.0
 djangorestframework==3.15.1
 dnspython==2.6.1
 -e git+https://github.com/ErikPolzin/drf-dynamic-fields@f2f285a3402d28055a71266277673739e79e4533#egg=drf_dynamic_fields
+ecdsa==0.19.0
 eth-account==0.11.2
 eth-hash==0.7.0
 eth-keyfile==0.8.1
@@ -64,10 +65,12 @@ pyasn1==0.6.0
 pyasn1_modules==0.4.0
 pycparser==2.22
 pycryptodome==3.20.0
+PyJWT==2.8.0
 pymongo==4.7.3
 pyOpenSSL==24.1.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
+python-jose==3.3.0
 python-keycloak==4.0.0
 pytz==2024.1
 pyunormalize==15.1.0
@@ -79,6 +82,7 @@ requests==2.32.3
 requests-toolbelt==1.0.0
 rlp==4.0.1
 rpds-py==0.18.1
+rsa==4.9
 service-identity==24.1.0
 six==1.16.0
 sqlparse==0.5.0
