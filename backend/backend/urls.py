@@ -17,7 +17,6 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
-from service_monitor.views import ListServices, AddService, DeleteService, EditService, ListServicesByType
 from wallet.views import CreateWallet, SendToken, CheckBalance, CheckWallet, CheckDetails
 from users.views import UserKeycloakAttributes, RegisterKeycloakUser
 
@@ -28,13 +27,7 @@ urlpatterns = [
     path("accounts/", include("accounts.urls")),
     path("monitoring/", include("monitoring.urls")),
     path("metrics/", include("metrics.urls")),
-
-    # services
-    path('service/list/', ListServices.as_view()),
-    path('service/add/', AddService.as_view()),
-    path('service/delete/<str:service_name>/', DeleteService.as_view()),
-    path('service/edit/<str:service_name>/', EditService.as_view()),
-    path('service/list-by-type/', ListServicesByType.as_view()),
+    path("service_monitor/", include("service_monitor.urls")),
 
     # wallets
     path('wallet/create/', CreateWallet.as_view()),
