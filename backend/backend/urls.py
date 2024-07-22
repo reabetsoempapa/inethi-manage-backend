@@ -18,13 +18,14 @@ from django.contrib import admin
 from django.urls import path, include
 from ap_monitor.views import ListDevices, DeleteDevice, UpdateDevices, AddDevice
 from service_monitor.views import ListServices, AddService, DeleteService, EditService, ListServicesByType
-from wallet.views import CreateWallet, SendToken
-from users.views import UserKeycloakAttributes
+from wallet.views import CreateWallet, SendToken, CheckBalance, CheckWallet, CheckDetails
+from users.views import UserKeycloakAttributes, RegisterKeycloakUser
 
 urlpatterns = [
     # This will override the default login url
     path('admin/', include("django_keycloak.urls")),
     path('admin/', admin.site.urls),
+
     # ap_monitor
     path('monitor/devices/', ListDevices.as_view()),
     path('monitor/delete/', DeleteDevice.as_view()),
@@ -40,8 +41,12 @@ urlpatterns = [
 
     # wallets
     path('wallet/create/', CreateWallet.as_view()),
-    path('wallet/send_token/', SendToken.as_view()),
+    path('wallet/send-token/', SendToken.as_view()),
+    path('wallet/balance/', CheckBalance.as_view()),
+    path('wallet/ownership/', CheckWallet.as_view()),
+    path('wallet/details/', CheckDetails.as_view()),
 
-    # auth
-    path('user/attributes/', UserKeycloakAttributes.as_view()),
+    # user
+    path('user/keycloak/attributes/', UserKeycloakAttributes.as_view()),
+    path('user/keycloak/register/', RegisterKeycloakUser.as_view())
 ]
