@@ -9,9 +9,11 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -26,18 +28,28 @@ SECRET_KEY = "django-insecure-+74x)9m1hsf)--#99%dgeqduae6if_g&nhanbzi2brd_#$r$$i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'manage.inethicloud.net', 'manage.inethilocal.net', 'manage-backend.inethilocal.net',
-                 'manage-backend.inethicloud.net']
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "manage.inethicloud.net",
+    "manage.inethilocal.net",
+    "manage-backend.inethilocal.net",
+    "manage-backend.inethicloud.net",
+]
 
-CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://127.0.0.1:3000', 'https://manage.inethilocal.net',
-                        'https://manage.inethicloud.net', 'https://manage-backend.inethilocal.net',
-                        'https://manage-backend.inethicloud.net']
+CSRF_TRUSTED_ORIGINS = [
+    "http://127.0.0.1:8000",
+    "http://127.0.0.1:3000",
+    "https://manage.inethilocal.net",
+    "https://manage.inethicloud.net",
+    "https://manage-backend.inethilocal.net",
+    "https://manage-backend.inethicloud.net",
+]
 
 # CORS settings for development. For production, consider specifying CORS_ALLOWED_ORIGINS.
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # For development
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = ['authorization', 'content-type']
+CORS_ALLOW_HEADERS = ["authorization", "content-type"]
 # Application definition
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -46,37 +58,43 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    'service_monitor',
-    'ap_monitor',
-    'users',
-    'payments',
-    'rest_framework',
-    'corsheaders',
-    'django_keycloak',
-    'wallet'
+    "service_monitor",
+    "ap_monitor",
+    "users",
+    "payments",
+    "rest_framework",
+    "corsheaders",
+    "django_keycloak",
+    "wallet",
 ]
 # Keycloak config
-AUTHENTICATION_BACKENDS = ["django_keycloak.backends.KeycloakAuthorizationCodeBackend"]
 LOGIN_URL = "keycloak_login"
-AUTH_USER_MODEL = "django_keycloak.KeycloakUser"
+AUTHENTICATION_BACKENDS = ["django_keycloak.backends.KeycloakAuthorizationCodeBackend"]
 KEYCLOAK_CLIENTS = {
     "DEFAULT": {
         "URL": os.environ["KEYCLOAK_URL"],
         "REALM": os.environ["KEYCLOAK_REALM"],
         "CLIENT_ID": os.environ["KEYCLOAK_CLIENT_ID"],
-        "CLIENT_SECRET": os.environ["KEYCLOAK_CLIENT_SECRET"]
+        "CLIENT_SECRET": os.environ["KEYCLOAK_CLIENT_SECRET"],
     },
     "API": {
         "URL": os.environ["KEYCLOAK_URL"],
         "REALM": os.environ["KEYCLOAK_REALM"],
         "CLIENT_ID": os.environ["DRF_KEYCLOAK_CLIENT_ID"],
-        "CLIENT_SECRET": None  # DRF client is public
-    }
+        "CLIENT_SECRET": None,  # DRF client is public
+    },
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'django_keycloak.authentication.KeycloakDRFAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ]
 }
 
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -84,7 +102,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-
 ]
 
 ROOT_URLCONF = "backend.urls"
@@ -110,24 +127,25 @@ WSGI_APPLICATION = "backend.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'manage',
-        'USER': 'inethi',
-        'PASSWORD': 'iNethi2023#',
-        #'HOST': '127.0.0.1', # this works when running python locally
-        'HOST': 'inethi-manage-mysql',
-        'PORT': '3306',
+if DEBUG:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db2.sqlite3",
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'manage',
+            'USER': 'inethi',
+            'PASSWORD': 'iNethi2023#',
+            #'HOST': '127.0.0.1', # this works when running python locally
+            'HOST': 'inethi-manage-mysql',
+            'PORT': '3306',
+        }
+    }
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -149,9 +167,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'Africa/Johannesburg'
+TIME_ZONE = "Africa/Johannesburg"
 
 USE_I18N = True
 
@@ -167,49 +185,47 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
         },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'console_info': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-            'stream': 'ext://sys.stdout',  # Use standard output rather than standard error
-        },
-        'file_error': {
-            'level': 'ERROR',
-            'class': 'logging.FileHandler',
-            'filename': 'django_errors.log',
-            'formatter': 'verbose',
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
         },
     },
-    'loggers': {
-        '': {  # root logger
-            'handlers': ['console_info', 'file_error'],
-            'level': 'INFO',
-            'propagate': False,
+    "handlers": {
+        "console_info": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+            "stream": "ext://sys.stdout",  # Use standard output rather than standard error
         },
-        'django': {
-            'handlers': ['console_info', 'file_error'],
-            'level': 'INFO',
-            'propagate': False,
+        "file_error": {
+            "level": "ERROR",
+            "class": "logging.FileHandler",
+            "filename": "django_errors.log",
+            "formatter": "verbose",
         },
-        'general': {
-            'handlers': ['console_info', 'file_error'],
-            'level': 'INFO',
-            'propagate': False,
+    },
+    "loggers": {
+        "": {  # root logger
+            "handlers": ["console_info", "file_error"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django": {
+            "handlers": ["console_info", "file_error"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "general": {
+            "handlers": ["console_info", "file_error"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
 }
-
-
