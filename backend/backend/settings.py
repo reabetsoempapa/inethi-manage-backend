@@ -60,7 +60,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "service_monitor",
     "ap_monitor",
-    "users",
     "payments",
     "rest_framework",
     "corsheaders",
