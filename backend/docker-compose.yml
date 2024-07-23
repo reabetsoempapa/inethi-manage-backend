@@ -1,9 +1,9 @@
-version: "3"
+version: "3.9"
 
 services:
-  inethi-manage-mysql:
-    container_name: inethi-manage-mysql
+  db:
     image: mysql:latest
+    container_name: inethi-manage-mysql
     environment:
       MYSQL_DATABASE: "manage"
       MYSQL_USER: "inethi"
@@ -11,30 +11,28 @@ services:
       MYSQL_ROOT_PASSWORD: "iNethi2023#"
     volumes:
       - manage_db:/var/lib/mysql
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.manageMysql.entrypoints=websecure"
+    ports:
+      - "3306:3306"
 
-  inethi-manage:
-    container_name: inethi-manage
+  web:
     build:
       context: .
+    container_name: inethi-manage
     depends_on:
-      - inethi-manage-mysql
+      - db
+    environment:
+      DJANGO_SECRET_KEY: "your_secret_key"
+      DJANGO_DEBUG: "True"
+      DB_NAME: "manage"
+      DB_USER: "inethi"
+      DB_PASSWORD: "iNethi2023#"
+      DB_HOST: "db"
+      DB_PORT: "3306"
     volumes:
-      - "/mnt/data/prometheus/prometheus-config/prometheus.yml:/app/prometheus.yml"
+      - .:/app
     ports:
-      - "8000:8000" # Exposing port 8000 directly
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.manageBackend.rule=Host(`manage-backend.inethilocal.net`)"
-      - "traefik.http.routers.manageBackend.entrypoints=websecure"
-      - "traefik.http.services.manageBackend.loadbalancer.server.port=8000"
-
-networks:
-  default:
-    external:
-      name: "inethi-bridge-traefik"
+      - "8000:8000"
+    command: ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000"]
 
 volumes:
   manage_db:
