@@ -1,14 +1,14 @@
-version: '3'
+version: "3"
 
 services:
   inethi-manage-mysql:
     container_name: inethi-manage-mysql
     image: mysql:latest
     environment:
-      MYSQL_DATABASE: 'manage'
-      MYSQL_USER: 'inethi'
-      MYSQL_PASSWORD: 'iNethi2023#'
-      MYSQL_ROOT_PASSWORD: 'iNethi2023#'
+      MYSQL_DATABASE: "manage"
+      MYSQL_USER: "inethi"
+      MYSQL_PASSWORD: "iNethi2023#"
+      MYSQL_ROOT_PASSWORD: "iNethi2023#"
     volumes:
       - manage_db:/var/lib/mysql
     labels:
@@ -23,6 +23,8 @@ services:
       - inethi-manage-mysql
     volumes:
       - "/mnt/data/prometheus/prometheus-config/prometheus.yml:/app/prometheus.yml"
+    ports:
+      - "8000:8000" # Exposing port 8000 directly
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.manageBackend.rule=Host(`manage-backend.inethilocal.net`)"
