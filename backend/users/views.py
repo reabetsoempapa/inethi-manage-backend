@@ -50,8 +50,8 @@ class RegisterKeycloakUser(APIView):
         password = request.data.get('password')
 
         token_response = requests.post(
-            'https://keycloak.inethicloud.net/realms/inethi-global-services/protocol/openid-connect/token', {
-                'client_id': 'admin-cli',
+            'https://keycloak.inethilocal.net/realms/Test/protocol/openid-connect/token', {
+                'client_id': 'testclient',
                 'client_secret': CLIENT_SECRET,
                 'grant_type': 'client_credentials'
             })
@@ -82,7 +82,7 @@ class RegisterKeycloakUser(APIView):
         }
 
         registration_response = requests.post(
-            'https://keycloak.inethicloud.net/admin/realms/inethi-global-services/users',
+            'http://keycloak.inethilocal.net/admin/realms/Test/users',
             json=user_data,
             headers=headers
         )
