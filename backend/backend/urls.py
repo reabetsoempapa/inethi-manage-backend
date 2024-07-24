@@ -17,26 +17,15 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
-from wallet.views import CreateWallet, SendToken, CheckBalance, CheckWallet, CheckDetails
-from users.views import UserKeycloakAttributes, RegisterKeycloakUser
 
 urlpatterns = [
+    # This will override the default login url
     path("admin/", include("django_keycloak.urls")),
     path("admin/", admin.site.urls),
-
     path("accounts/", include("accounts.urls")),
     path("monitoring/", include("monitoring.urls")),
     path("metrics/", include("metrics.urls")),
     path("service_monitor/", include("service_monitor.urls")),
-
     # wallets
-    path('wallet/create/', CreateWallet.as_view()),
-    path('wallet/send-token/', SendToken.as_view()),
-    path('wallet/balance/', CheckBalance.as_view()),
-    path('wallet/ownership/', CheckWallet.as_view()),
-    path('wallet/details/', CheckDetails.as_view()),
-
-    # user
-    path('user/keycloak/attributes/', UserKeycloakAttributes.as_view()),
-    path('user/keycloak/register/', RegisterKeycloakUser.as_view())
+    path("wallet/", include("wallet.urls")),
 ]
