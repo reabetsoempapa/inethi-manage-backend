@@ -30,9 +30,19 @@ class CreateRecipient(APIView):
         except Exception as e:
             logger.error(f"Error creating recipient: {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            
 class RecipientList(APIView):
     def get(self, request):
-        recipients = Recipient.objects.all()
+        wallet_address = request.query_params.get('wallet_address')
+        if wallet_address:
+            wallet = Wallet.objects.filter(address=wallet_address).first()
+            if not wallet:
+                return Response({"error": "Wallet not found."}, status=status.HTTP_404_NOT_FOUND)
+            recipients = wallet.walletRecipients.all()
+        else:
+            recipients = Recipient.objects.all()
+
         recipient_list = [{"name": recipient.name, "wallet_address": recipient.wallet_address, "day_added": recipient.day_added, "wallet_name": recipient.wallet_name} for recipient in recipients]
         return Response(recipient_list, status=status.HTTP_200_OK)
+
+
