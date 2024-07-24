@@ -49,7 +49,9 @@ INSTALLED_APPS = [
     'payments',
     'rest_framework',
     'corsheaders',
-    'wallet'
+    'wallet',
+    'walletRecipients',
+
 ]
 
 MIDDLEWARE = [

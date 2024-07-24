@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from ap_monitor.views import ListDevices, DeleteDevice, UpdateDevices, AddDevice
 from service_monitor.views import ListServices, AddService, DeleteService, EditService, ListServicesByType
 from wallet.views import CreateWallet, SendToken, CheckBalance, CheckWallet, CheckDetails
@@ -46,5 +46,8 @@ urlpatterns = [
 
     # user
     path('user/keycloak/attributes/', UserKeycloakAttributes.as_view()),
-    path('user/keycloak/register/', RegisterKeycloakUser.as_view())
+    path('user/keycloak/register/', RegisterKeycloakUser.as_view()),
+
+
+    path('wallet-recipients/', include('walletRecipients.urls')),
 ]

@@ -81,7 +81,74 @@ def check_balance_custom_contract(contract, address):
     # Adjust the balance based on the token decimals
     adjusted_balance = raw_balance / (10 ** token_decimals)
     return adjusted_balance
+# class CreateWallet(APIView):
+#     def post(self, request):
+#         try:
+#             if 'Authorization' not in request.headers:
+#                 logger.error("Authentication credentials were not provided in headers.")
+#                 return Response({'error': 'Authentication credentials were not provided.'},
+#                                 status=status.HTTP_401_UNAUTHORIZED)
+            
+#             auth = request.headers.get('Authorization', None)
+#             if not auth:
+#                 logger.error("Authorization header is missing.")
+#                 return Response({'error': 'Authorization header is missing.'},
+#                                 status=status.HTTP_400_BAD_REQUEST)
+            
+#             token = auth.split()[1]
+#             key = settings.KEYCLOAK_PUBLIC_KEY
 
+#             try:
+#                 decoded_token = jwt.decode(token, key, algorithms=['RS256'], audience='account')
+#             except InvalidAlgorithmError as e:
+#                 logger.error("Invalid algorithm used to decode the token: %s", str(e))
+#                 return Response({'error': 'Invalid algorithm used to decode the token.'},
+#                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#             except ExpiredSignatureError as e:
+#                 logger.error("Token has expired: %s", str(e))
+#                 return Response({'error': 'Token has expired.'},
+#                                 status=status.HTTP_401_UNAUTHORIZED)
+#             except JWTError as e:
+#                 logger.error("Error decoding token: %s", str(e))
+#                 return Response({'error': 'Error decoding token.'},
+#                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#             except Exception as e:
+#                 logger.error("Unknown error decoding token: %s", str(e))
+#                 return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+#             keycloak_username = decoded_token.get('preferred_username')
+#             try:
+#                 user = User.objects.get(keycloak_username=keycloak_username)
+#             except User.DoesNotExist:
+#                 user = User.objects.create(keycloak_username=keycloak_username)
+
+#             if user.has_wallet:
+#                 logger.info("User %s already has a wallet.", keycloak_username)
+#                 return Response({"error": "User already has a wallet."}, status=status.HTTP_409_CONFLICT)
+
+#             wallet_name = request.data.get('wallet_name')
+#             if not wallet_name:
+#                 logger.error("Wallet name is missing in request data.")
+#                 return Response({'error': 'Wallet name is missing.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+#             roles = decoded_token.get('realm_access', {}).get('roles', [])
+#             if 'create_wallet' in roles:
+#                 w3 = Web3(Web3.HTTPProvider('https://forno.celo.org'))
+#                 address, private_key = create_account(w3)
+#                 wallet = Wallet.objects.create(address=address, private_key=private_key, name=wallet_name)
+#                 user.wallet = wallet
+#                 user.has_wallet = True
+#                 user.save()
+#                 logger.info("Wallet created for user %s with address %s.", keycloak_username, address)
+#                 return Response({"address": wallet.address, 'name': wallet.name}, status=status.HTTP_201_CREATED)
+#             else:
+#                 logger.warning("User %s does not have permission to create a wallet.", keycloak_username)
+#                 return Response({"error": "User does not have permission to create a wallet."},
+#                                 status=status.HTTP_403_FORBIDDEN)
+
+#         except Exception as e:
+#             logger.error("Error creating wallet: %s", str(e))
+#             return Response({"error": f"{e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class CreateWallet(APIView):
     def post(self, request):

@@ -8,7 +8,6 @@ load_dotenv()
 
 ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
 
-
 def encrypt_private_key(private_key):
     if not ENCRYPTION_KEY:
         raise ValueError("ENCRYPTION_KEY is not set in environment variables.")
@@ -16,12 +15,10 @@ def encrypt_private_key(private_key):
     encrypted_key = fernet.encrypt(private_key.encode())
     return encrypted_key.decode()
 
-
 def decrypt_private_key(encrypted_key):
     fernet = Fernet(ENCRYPTION_KEY)
     decrypted_key = fernet.decrypt(encrypted_key.encode())
     return decrypted_key.decode()
-
 
 class Wallet(models.Model):
     address = models.CharField(max_length=50, unique=True)
