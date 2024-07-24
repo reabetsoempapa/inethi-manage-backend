@@ -1,48 +1,46 @@
 import logging
 
 from rest_framework.decorators import action
-from rest_framework.viewsets import ViewSet
+from rest_framework.viewsets import GenericViewSet
 from rest_framework.response import Response
+from rest_framework import mixins
 from rest_framework import status
 
+from .models import Wallet
 from .serializers import WalletSerializer
+from .permissions import IsMyWalletOrReadOnly
 
 # Get an instance of a logger
 logger = logging.getLogger("general")
 
 
-class WalletViewSet(ViewSet):
+class WalletViewSet(mixins.CreateModelMixin,
+                    mixins.RetrieveModelMixin,
+                    mixins.UpdateModelMixin,
+                    GenericViewSet):
     """Viewset for endpoints related to the current user's wallet.
-
-    List methods are not allowed (since we don't want the API to expose other users' wallets).
+    
+    This viewset can create, retrieve and update wallets for the current user.
+    Note that it explicitly cannot list other users' wallets (for obvious security reasons!)
     """
 
-    def create(self, request):
-        """Create a wallet for a user via POST, assuming they don't have one already."""
-        if hasattr(request.user, "wallet"):
-            return Response(
-                {"error": "Error creating wallet: User already has a wallet"},
-                status=status.HTTP_417_EXPECTATION_FAILED,
-            )
-        serializer = WalletSerializer(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    queryset = Wallet.objects.all()
+    serializer_class = WalletSerializer
 
-    # This is actually not the list view - it's the detail view, but since the
-    # wallet detail depends on the current user, not URL parameters, we define it here.
-    def list(self, request):
-        """Serialize the request user's wallet and return as JSON."""
-        if not hasattr(request.user, "wallet"):
-            return Response(
-                {"error": "Error getting wallet: User does not have a wallet"},
-                status=status.HTTP_417_EXPECTATION_FAILED,
-            )
-        serializer = WalletSerializer(request.user.wallet)
-        return Response(serializer.data)
+    lookup_value_regex = '[0-9]*|current'
+    permission_classes = [IsMyWalletOrReadOnly]
 
-    @action(detail=False, methods=["post"])
-    def send(self, request):
+    def perform_authentication(self, request):
+        """Replace 'current' pk with the request user's wallet's pk."""
+        super().perform_authentication(request)
+        if self.kwargs.get("pk") == "current":
+            if hasattr(request.user, "wallet"):
+                self.kwargs["pk"] = request.user.wallet.pk
+            else:
+                self.kwargs["pk"] = None
+
+    @action(detail=True, methods=["post"])
+    def send(self, request, pk=None):
         """Endpoint to send currency to another wallet."""
         sender_has_wallet = hasattr(request.user, "wallet")
         if not sender_has_wallet:
@@ -61,8 +59,8 @@ class WalletViewSet(ViewSet):
             receipt = sender_wallet.send_to_address(amount, recipient_address)
         return Response({"message": "successfully sent"})
 
-    @action(detail=False)
-    def balance(self, request):
+    @action(detail=True)
+    def balance(self, request, pk=None):
         """Endpoint to check a wallet's balance."""
         if not hasattr(request.user, "wallet"):
             return Response(
@@ -74,7 +72,7 @@ class WalletViewSet(ViewSet):
         name = wallet.contract_name()
         return Response({"balance": f"{balance} {name}"})
 
-    @action(detail=False)
-    def exists(self, request):
+    @action(detail=True)
+    def exists(self, request, pk=None):
         """Endpoint to check whether the current user has a wallet."""
         return Response({"has_wallet": hasattr(request.user, "wallet")})
