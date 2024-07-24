@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.db.models import Sum
-from rest_framework.serializers import ModelSerializer, SerializerMethodField
+from rest_framework.serializers import ModelSerializer, SerializerMethodField, SlugRelatedField
 
 
 class UserSerializer(ModelSerializer):
@@ -9,6 +9,7 @@ class UserSerializer(ModelSerializer):
     num_sessions = SerializerMethodField()
     bytes_recv = SerializerMethodField()
     bytes_sent = SerializerMethodField()
+    groups = SlugRelatedField(many=True, read_only=True, slug_field="name")
 
     class Meta:
         """UserSerializer metadata."""

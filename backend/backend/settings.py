@@ -70,7 +70,6 @@ INSTALLED_APPS = [
     "monitoring",
     "metrics",
     "service_monitor",
-    "users",
     "payments",
     "wallet",
 ]
