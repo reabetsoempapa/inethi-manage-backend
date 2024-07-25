@@ -4,7 +4,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.conf import settings
 
-from .models import Node, UnknownNode
+from .models import Node
 
 
 def sync_prometheus_data_to_yml():
@@ -31,13 +31,6 @@ def sync_prometheus_data_to_yml():
 def update_prometheus_targets(sender, **kwargs):
     """Update prometheus targets when network devices are added or modified."""
     sync_prometheus_data_to_yml()
-
-
-@receiver(post_save, sender=Node)
-def delete_unknown_nodes(sender, created=False, instance=None, **kwargs):
-    """Delete unknown nodes with the same MAC address."""
-    if created and instance:
-        UnknownNode.objects.filter(mac=instance.mac).delete()
 
 
 @receiver(post_delete, sender=Node)

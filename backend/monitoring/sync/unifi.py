@@ -28,6 +28,8 @@ def sync_meshes(client):
 def sync_nodes(client):
     """Sync Node objects from the unifi database."""
     for device in client.ace.device.find():
+        # The name doesn't seem to be stored directly, looks like it's
+        # assigned during an adoption event
         adoption_details = client.ace.event.find_one(
             {"key": "EVT_AP_Adopted", "ap": device["mac"]}
         )
@@ -35,12 +37,13 @@ def sync_nodes(client):
         adopt_time = aware_timestamp(device["adopted_at"])
         yield {  # Update fields
             "ip": device["ip"],
-            "created": adopt_time
+            "adopted_at": adopt_time,
         }, {  # Create fields, these won't overwrite if this model has already been synced
             "name": name,
-            "mesh": Mesh.objects.get(name=device["last_connection_network_name"].lower()),
+            "is_ap": True,  # Seems like all UniFi nodes are APs
+            "mesh": Mesh.objects.filter(name=device["last_connection_network_name"].lower()).first(),
             "description": "",
-            "hardware": device["model"]
+            "hardware": device["model"],
         }, {  # Lookup fields
             "mac": device["mac"]
         }
@@ -55,7 +58,7 @@ def sync_node_data_usage_metrics(client):
     for ap in aps:
         created_aware = aware_timestamp(ap["time"])
         if last_created and created_aware < last_created:
-                continue
+            continue
         yield {
             "mac": ap["ap"],
             "tx_bytes": ap.get("tx_bytes"),
@@ -72,7 +75,7 @@ def sync_node_data_rate_metrics(client):
     for ap in aps:
         created_aware = aware_timestamp(ap["time"])
         if last_created and created_aware < last_created:
-                continue
+            continue
         bytes_per_5mins_to_bits_per_second = 8 / 5 / 60
         yield {
             "mac": ap["ap"],
@@ -90,7 +93,7 @@ def sync_node_failures_metrics(client):
     for ap in aps:
         created_aware = aware_timestamp(ap["time"])
         if last_created and created_aware < last_created:
-                continue
+            continue
         yield {
             "mac": ap["ap"],
             "tx_packets": ap.get("tx_packets"),
@@ -112,7 +115,7 @@ def sync_node_resources_metrics(client):
     for ap in aps:
         created_aware = aware_timestamp(ap["time"])
         if last_created and created_aware < last_created:
-                continue
+            continue
         yield {
             "mac": ap["ap"],
             "memory": ap.get("mem"),

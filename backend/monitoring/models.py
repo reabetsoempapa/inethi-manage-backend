@@ -8,12 +8,27 @@ from metrics.models import UptimeMetric, ResourcesMetric, RTTMetric, DataRateMet
 from .checks import CheckResults, CheckStatus
 
 
+class WlanConf(models.Model):
+    """Fireless configuration."""
+
+    class Security(models.TextChoices):
+        """Security mechanism for wireless access."""
+
+        OPEN = "open", "Open"
+        WPA_PSK = "wpapsk", "WPA-PSK"
+
+    name = models.CharField(max_length=32)
+    passphrase = models.CharField(max_length=100, null=True, blank=True)
+    security = models.CharField(max_length=6, choices=Security.choices)
+    is_guest = models.BooleanField(default=False)
+
+
 class Mesh(models.Model):
     """Mesh consisting of nodes."""
 
     name = models.CharField(max_length=128, primary_key=True)
-    ssid = models.CharField(max_length=32)
     created = models.DateTimeField(auto_now_add=True)
+    wlanconfs = models.ManyToManyField(WlanConf, blank=True)
 
 
 class Node(models.Model):
@@ -22,8 +37,11 @@ class Node(models.Model):
     # Required Fields
     mac = MACAddressField(primary_key=True)
     name = models.CharField(max_length=255)
-    mesh = models.ForeignKey(Mesh, on_delete=models.CASCADE)
     # Optional Fields
+    mesh = models.ForeignKey(Mesh, on_delete=models.CASCADE, null=True, blank=True)
+    adopted_at = models.DateTimeField(null=True, blank=True)
+    last_contact = models.DateTimeField(null=True, blank=True)
+    is_ap = models.BooleanField(default=False)
     online = models.BooleanField(default=False)
     neighbours = models.ManyToManyField("Node", blank=True)
     description = models.CharField(max_length=255, null=True, blank=True)
@@ -92,18 +110,6 @@ class Node(models.Model):
 
     def __str__(self):
         return f"Node {self.name} ({self.mac})"
-
-
-class UnknownNode(models.Model):
-    """Nodes that haven't been adopted yet."""
-
-    mac = MACAddressField(primary_key=True)
-    name = models.CharField(max_length=255)
-    ip = models.CharField(max_length=15)
-    created = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Unknown Node {self.mac} [{self.created}]"
 
 
 class ClientSession(models.Model):

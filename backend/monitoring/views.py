@@ -15,7 +15,7 @@ def overview(request):
     return Response({
         "n_nodes": Node.objects.count(),
         "n_positioned_nodes": Node.objects.filter(lat__isnull=False, lon__isnull=False).count(),
-        "n_unknown_nodes": models.UnknownNode.objects.count(),
+        "n_unknown_nodes": Node.objects.filter(mesh__isnull=True).count(),
         "n_ok_nodes": len([n for n in Node.objects.all() if n.check_results.status() == CheckStatus.OK]),  # TODO very inefficient
     })
 
@@ -38,10 +38,3 @@ class MeshViewSet(ModelViewSet):
 
     queryset = models.Mesh.objects.all()
     serializer_class = serializers.MeshSerializer
-
-
-class UnknownNodeViewSet(ModelViewSet):
-    """View/Edit/Add/Delete UnknownNode items."""
-
-    queryset = models.UnknownNode.objects.all()
-    serializer_class = serializers.UnknownNodeSerializer

@@ -8,7 +8,7 @@ from django.conf import settings
 from django.utils.timezone import make_aware, now
 from django.contrib.auth.models import User
 
-from monitoring.models import Mesh, Node, UnknownNode, ClientSession
+from monitoring.models import Mesh, Node, ClientSession
 from metrics.models import (
     FailuresMetric,
     ResourcesMetric,
@@ -23,11 +23,11 @@ SELECT c.name, c.created
 FROM clouds c
 """
 GET_NODES_AND_APS_QUERY = """
-SELECT m.name, n.name, n.description, n.mac, n.hardware, n.ip, n.last_contact_from_ip
+SELECT m.name, n.name, false, n.description, n.mac, n.hardware, n.ip, n.last_contact_from_ip
 FROM nodes n
 JOIN meshes m
 ON n.mesh_id = m.id;
-SELECT c.name, a.name, a.description, a.mac, a.hardware, null, a.last_contact_from_ip
+SELECT c.name, a.name, true, a.description, a.mac, a.hardware, null, a.last_contact_from_ip
 FROM aps a
 JOIN ap_profiles p
 ON a.ap_profile_id = p.id
@@ -75,7 +75,7 @@ JOIN aps a
 ON l.ap_id = a.id;
 """
 GET_UNKNOWN_NODES_QUERY = """
-SELECT u.mac, u.vendor, u.from_ip, u.gateway, u.last_contact, u.created, u.name
+SELECT u.mac, u.from_ip, u.last_contact, u.name
 FROM unknown_nodes u;
 """
 # This is the most perverse way of joining the radacct tabel to the ap table, but there doesn't
@@ -109,6 +109,7 @@ def sync_nodes(cursor):
         for (
             mesh_name,
             name,
+            is_ap,
             description,
             mac,
             hardware,
@@ -116,31 +117,22 @@ def sync_nodes(cursor):
             last_contact_from_ip,
         ) in result.fetchall():
             yield {  # Update fields
-                "ip": ip or last_contact_from_ip
+                "ip": ip or last_contact_from_ip,
+                "is_ap": is_ap,
             }, {  # Create fields, these will be set initially but won't be synced
                 "name": name,
-                "mesh": Mesh.objects.get(name=mesh_name),
+                "mesh": Mesh.objects.filter(name=mesh_name).first(),
                 "description": description,
-                "hardware": hardware
-            }, {"mac": mac}
-
-
-@bulk_sync(UnknownNode)
-def sync_unknown_nodes(cursor):
-    """Sync UnknownNode objects from the radiusdesk database."""
+                "hardware": hardware,
+            }, {
+                "mac": mac
+            }
     cursor.execute(GET_UNKNOWN_NODES_QUERY)
-    for mac, vendor, from_ip, gateway, last_contact, created, name in cursor.fetchall():
-        # If there already exists a node with the same MAC, don't
-        # create a new UnknownNode
-        if Node.objects.filter(mac=mac).exists():
-            continue
+    for mac, from_ip, last_contact, name in cursor.fetchall():
         yield {
-            "vendor": vendor,
-            "from_ip": from_ip,
-            "gateway": gateway,
-            "last_contact": make_aware(last_contact, TZ),
-            "created": make_aware(created, TZ),
             "name": name,
+            "ip": from_ip,
+            "last_contact": make_aware(last_contact, TZ),
         }, {"mac": mac}
 
 
@@ -265,7 +257,6 @@ def run():
             start_time = time.time()
             sync_meshes(cursor)
             sync_nodes(cursor)
-            sync_unknown_nodes(cursor)
             sync_node_bytes_metrics(cursor)
             sync_node_rates_metrics(cursor)
             sync_node_resources_metrics(cursor)

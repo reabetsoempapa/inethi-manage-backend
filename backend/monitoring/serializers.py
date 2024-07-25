@@ -19,16 +19,6 @@ class MeshSerializer(ModelSerializer):
         fields = "__all__"
 
 
-class UnknownNodeSerializer(ModelSerializer):
-    """Serializes UnknownNode objects from django model to JSON."""
-
-    class Meta:
-        """UnknownNodeSerializer metadata."""
-
-        model = models.UnknownNode
-        fields = "__all__"
-
-
 class AlertSerializer(ModelSerializer):
     """Serializes Alert objects from django model to JSON."""
 
