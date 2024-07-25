@@ -37,7 +37,7 @@ ALLOWED_HOSTS = [
     "manage.inethilocal.net",
     "manage-backend.inethilocal.net",
     "manage-backend.inethicloud.net",
-]
+] + os.environ.get("ALLOWED_HOSTS", "").split(",")
 
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
@@ -97,6 +97,10 @@ RD_DB_USER = "rd"
 RD_DB_PASSWORD = "rd"
 RD_DB_HOST = "localhost"
 RD_DB_PORT = "3306"
+RD_URL = os.environ["RADIUSDESK_URL"]
+RD_CONFIG_URL = f"{RD_URL}/cake4/rd_cake/nodes/get-config-for-node.json"
+RD_REPORT_URL = f"{RD_URL}/cake4/rd_cake/node-reports/submit_report.json"
+RD_ACTIONS_URL = f"{RD_URL}/cake4/rd_cake/node-actions/get_actions_for.json"
 # UNIFI config
 UNIFI_DB_NAME = "ace"
 UNIFI_DB_USER = ""
@@ -338,6 +342,10 @@ LOGGING = {
             "format": "{levelname} {message}",
             "style": "{",
         },
+        "report": {
+            "format": "{asctime} {message}",
+            "style": "{",
+        }
     },
     "handlers": {
         "console_info": {
@@ -351,6 +359,12 @@ LOGGING = {
             "class": "logging.FileHandler",
             "filename": "django_errors.log",
             "formatter": "verbose",
+        },
+        "reports_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": "reports.log",
+            "formatter": "report",
         },
     },
     "loggers": {
@@ -369,5 +383,10 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "reports": {
+            "handlers": ["reports_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        }
     },
 }
