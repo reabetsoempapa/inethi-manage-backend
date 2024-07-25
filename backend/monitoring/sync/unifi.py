@@ -138,17 +138,31 @@ def sync_client_sessions(client: MongoClient):
             client.ace_stat.stat_5minutes.find({"user": user_mac}, sort={"time": 1})
         )
         for i, d1 in enumerate(user_data):
+            t = aware_timestamp(d1["time"])
+            # Check whether there is an existing session in this time range
+            existing_session = ClientSession.objects.filter(
+                user=django_user, mac=user_mac, start_time__lte=t, end_time__gt=t
+            ).first()
+            if existing_session:
+                # Will encourage the algorithm to update the existing session because
+                # the user/mac/start_time are likely not unique. Note we use setdefault
+                # and not a direct assignment so that if we start a new session, then come
+                # across an existing session we will not modify the existing session, but will
+                # simply not add data to the new session during the period of the existing session.
+                kwargs.setdefault("start_time", existing_session.start_time)
+                # Skip this data point, we don't want to add bytes to an existing session
+                continue
             # We need the next stats entry to see whether there was a significant time delay
             # between the two, i.e. the session was ended
             d2 = user_data[i + 1] if i < len(user_data) - 1 else None
             # start_time, uplink and mac uniquely identify a session
-            kwargs.setdefault("start_time", aware_timestamp(d1["time"]))
+            kwargs.setdefault("start_time", t)
             kwargs.setdefault("uplink", Node.objects.get(mac=d1["x-set-ap_macs"][0]))
             kwargs["mac"] = user_mac
             # bytes_recv, bytes_sent, end_time and username are session data
             data["bytes_recv"] = data.get("bytes_recv", 0) + d1["rx_bytes"]
             data["bytes_sent"] = data.get("bytes_sent", 0) + d1["tx_bytes"]
-            data["end_time"] = aware_timestamp(d1["time"])
+            data["end_time"] = t
             data["user"] = django_user
             td = timedelta(seconds=(d2["time"] - d1["time"]) / 1000) if d2 else None
             # If this is the last entry, or the session is about to end
