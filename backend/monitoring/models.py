@@ -34,6 +34,12 @@ class Mesh(models.Model):
 class Node(models.Model):
     """Database table for network devices."""
 
+    class Hardware(models.TextChoices):
+        """Hardware choices."""
+
+        UBNT_AC_MESH = "ubnt_ac_mesh", "Ubiquiti AC Mesh"
+        TP_LINK_EAP = "tl_eap225_3_o", "TPLink EAP"
+
     # Required Fields
     mac = MACAddressField(primary_key=True)
     name = models.CharField(max_length=255)
@@ -45,7 +51,9 @@ class Node(models.Model):
     online = models.BooleanField(default=False)
     neighbours = models.ManyToManyField("Node", blank=True)
     description = models.CharField(max_length=255, null=True, blank=True)
-    hardware = models.CharField(max_length=255, blank=True, null=True)
+    hardware = models.CharField(
+        max_length=255, choices=Hardware.choices, default=Hardware.TP_LINK_EAP
+    )
     ip = models.CharField(max_length=255, blank=True, null=True)
     lat = models.FloatField(blank=True, null=True)
     lon = models.FloatField(blank=True, null=True)

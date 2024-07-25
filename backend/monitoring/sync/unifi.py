@@ -132,10 +132,10 @@ def sync_client_sessions(client: MongoClient):
     cursor = client.ace_stat.stat_5minutes.find({"o": "user"})
     for user_mac in cursor.distinct("user"):
         user = client.ace.user.find_one({"mac": user_mac})
-        django_user, _ = User.objects.get_or_create(username=user["hostname"])
         # Could not find this user, skip
         if not user:
             continue
+        django_user, _ = User.objects.get_or_create(username=user["hostname"])
         kwargs, data = {}, {}
         user_data = list(
             client.ace_stat.stat_5minutes.find({"user": user_mac}, sort={"time": 1})
