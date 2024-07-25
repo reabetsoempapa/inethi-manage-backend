@@ -14,7 +14,7 @@ from metrics.models import (
     ResourcesMetric,
     DataRateMetric,
 )
-from .utils import bulk_sync, aware_timestamp
+from ..utils import bulk_sync, aware_timestamp
 
 
 @bulk_sync(Mesh)

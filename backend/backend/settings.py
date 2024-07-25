@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     "service_monitor",
     "payments",
     "wallet",
+    "sync",
 ]
 # Keycloak config
 AUTHENTICATION_BACKENDS = ["django_keycloak.backends.KeycloakAuthorizationCodeBackend"]

@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from monitoring.sync.radiusdesk import run as sync_radiusdesk
+from sync.radiusdesk.sync_db import run as sync_radiusdesk
 
 
 class Command(BaseCommand):

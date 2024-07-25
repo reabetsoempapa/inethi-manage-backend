@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from monitoring.sync.unifi import run as sync_unifi
+from sync.unifi.sync_db import run as sync_unifi
 
 
 class Command(BaseCommand):

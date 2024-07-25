@@ -15,7 +15,7 @@ from metrics.models import (
     DataUsageMetric,
     DataRateMetric,
 )
-from .utils import bulk_sync
+from ..utils import bulk_sync
 
 
 GET_MESHES_QUERY = """
