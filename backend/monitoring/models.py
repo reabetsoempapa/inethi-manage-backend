@@ -1,10 +1,9 @@
-from datetime import datetime
 from django.utils.functional import cached_property
 from django.contrib.auth.models import User
 from django.db import models
 from macaddress.fields import MACAddressField
 
-from metrics.models import UptimeMetric, ResourcesMetric, RTTMetric, DataRateMetric
+from metrics.models import ResourcesMetric, RTTMetric, DataRateMetric
 from .checks import CheckResults, CheckStatus
 
 
@@ -154,3 +153,20 @@ class Alert(models.Model):
 
     def __str__(self):
         return f"Alert for {self.node} level={self.level} [{self.created}]"
+
+
+class Service(models.Model):
+
+    SERVICE_TYPES = (
+        ("utility", "utility"),
+        ("entertainment", "entertainment"),
+        ("games", "games"),
+        ("education", "education"),
+    )
+
+    API_LOCATIONS = (("cloud", "cloud"), ("local", "local"))
+
+    url = models.URLField(max_length=100, unique=True)
+    name = models.CharField(max_length=20, unique=True)
+    service_type = models.CharField(max_length=20, choices=SERVICE_TYPES)
+    api_location = models.CharField(max_length=10, choices=API_LOCATIONS)

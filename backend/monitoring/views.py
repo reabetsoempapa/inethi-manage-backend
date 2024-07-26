@@ -1,4 +1,3 @@
-
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -33,8 +32,16 @@ class AlertsViewSet(ModelViewSet):
     queryset = models.Alert.objects.all()
     serializer_class = serializers.AlertSerializer
 
+
 class MeshViewSet(ModelViewSet):
     """View/Edit/Add/Delete Mesh items."""
 
     queryset = models.Mesh.objects.all()
     serializer_class = serializers.MeshSerializer
+
+
+class ServiceViewSet(ModelViewSet):
+    """View Service items."""
+
+    queryset = models.Service.objects.all()
+    serializer_class = serializers.ServiceSerializer

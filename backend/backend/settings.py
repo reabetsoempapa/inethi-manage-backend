@@ -69,7 +69,6 @@ INSTALLED_APPS = [
     "accounts",
     "monitoring",
     "metrics",
-    "service_monitor",
     "payments",
     "wallet",
     "sync",

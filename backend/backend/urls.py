@@ -25,7 +25,6 @@ urlpatterns = [
     path("accounts/", include("accounts.urls")),
     path("monitoring/", include("monitoring.urls")),
     path("metrics/", include("metrics.urls")),
-    path("service_monitor/", include("service_monitor.urls")),
     path("wallet/", include("wallet.urls")),
     path("sync/", include("sync.urls")),
 ]

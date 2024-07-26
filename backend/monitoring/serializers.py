@@ -98,3 +98,13 @@ class NodeSerializer(DynamicFieldsModelSerializer):
     def get_download_speed(self, node: models.Node) -> float | None:
         """Get node's download speed."""
         return node.get_download_speed()
+
+
+class ServiceSerializer(ModelSerializer):
+    """Serializes Service objects from django model to JSON."""
+
+    class Meta:
+        """ServiceSerializer metadata."""
+
+        model = models.Service
+        fields = "__all__"
