@@ -62,12 +62,15 @@ def forward_request(
     """Duplicate a GET or POST request to another URL."""
     if hook_request:
         hook_request(request.data)
-    if request.method == "GET":
-        r = requests.get(url, params=request.query_params)
-    elif request.method == "POST":
-        r = requests.post(url, data=request.data, params=request.query_params)
-    else:
-        raise ValueError(f"Unsupported method '{request.method}'")
+    r = requests.request(
+        request.method,
+        url,
+        params=request.query_params,
+        json=request.data,
+        headers=request.headers,
+        cookies=request.COOKIES,
+        timeout=20
+    )
     response_data = r.json()
     if hook_response:
         hook_response(response_data)
