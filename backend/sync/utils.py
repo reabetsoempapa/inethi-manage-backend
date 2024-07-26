@@ -8,8 +8,10 @@ from django.http import HttpRequest, HttpResponse
 from rest_framework.decorators import (
     authentication_classes,
     permission_classes,
+    parser_classes,
     api_view,
 )
+from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
 import pytz
 
@@ -56,8 +58,8 @@ def aware_timestamp(v: int) -> datetime:
 def forward_request(
     url: str,
     request: HttpRequest,
-    hook_request: Callable | None = None,
-    hook_response: Callable | None = None,
+    hook_request: Callable | None,
+    hook_response: Callable | None,
 ) -> Response:
     """Duplicate a GET or POST request to another URL."""
     if hook_request:
@@ -66,25 +68,30 @@ def forward_request(
         request.method,
         url,
         params=request.query_params,
-        json=request.data,
+        data=request.data,
         headers=request.headers,
         cookies=request.COOKIES,
         timeout=20
     )
-    response_data = r.json()
+    try:
+        response_data = r.json()
+    except requests.exceptions.JSONDecodeError:
+        response_data = r.content
     if hook_response:
         hook_response(response_data)
-    return Response(response_data, status=r.status_code)
+    return HttpResponse(r.content, status=r.status_code)
 
 
 def forward_view(
     url: str,
     hook_request: Callable | None = None,
     hook_response: Callable | None = None,
+    parser=JSONParser,
 ) -> Callable[[HttpRequest], HttpResponse]:
     """Generate a view that forwards GET or POST requests."""
 
     @api_view(["GET", "POST"])
+    @parser_classes([parser])
     @authentication_classes([])
     @permission_classes([])
     def view(request):

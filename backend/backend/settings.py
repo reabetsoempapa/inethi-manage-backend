@@ -107,6 +107,8 @@ UNIFI_DB_USER = ""
 UNIFI_DB_PASSWORD = ""
 UNIFI_DB_HOST = "localhost"
 UNIFI_DB_PORT = "27117"
+UNIFI_URL = os.environ["UNIFI_URL"]
+UNIFI_INFORM_URL = f"{UNIFI_URL}/inform"
 
 DEVICE_CHECKS = [
     {
