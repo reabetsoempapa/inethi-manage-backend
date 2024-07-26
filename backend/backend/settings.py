@@ -131,7 +131,7 @@ DEVICE_CHECKS = [
     },
     {
         "title": "Contacted",
-        "key": "is_contacted",
+        "key": "last_contact",
         "func": bool,
         "feedback": {
             None: "Device has never been contacted",
@@ -141,7 +141,7 @@ DEVICE_CHECKS = [
     },
     {
         "title": "Active",
-        "key": "last_contacted_time",
+        "key": "last_contact",
         "func": lambda v: timezone.now() - v < timedelta(hours=1),
         "feedback": {
             None: "Device has not been contacted yet",
@@ -312,8 +312,13 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": timedelta(minutes=5),
     },
     "sync_schedule": {
-        "task": "monitoring.tasks.run_sync",
-        # Executes db sync every 10 min
+        "task": "sync.tasks.sync_dbs",
+        # Executes db sync every hour
+        "schedule": timedelta(minutes=60),
+    },
+    "alerts_schedule": {
+        "task": "sync.tasks.generate_alerts",
+        # Executes alert generation every 10 mins
         "schedule": timedelta(minutes=10),
     },
     "aggregate_hourly": {

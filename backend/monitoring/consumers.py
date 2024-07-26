@@ -19,8 +19,15 @@ class UpdatesConsumer(AsyncWebsocketConsumer):
 
     # Receive message from updates group
     async def update_devices(self, event):
-        """Receive and update.devices message from the default group."""
+        """Receive an update.devices message from the default group."""
         # Just mirror the data across the whole group
         await self.send(
             text_data=json.dumps({"type": "sync:devices", "devices": event["data"]})
+        )
+
+    async def update_device(self, event):
+        """Receive an update.device message from the default group."""
+        # Just mirror the data across the whole group
+        await self.send(
+            text_data=json.dumps({"type": "sync:device", "device": event["data"]})
         )

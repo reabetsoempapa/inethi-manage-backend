@@ -60,12 +60,6 @@ class Node(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     @cached_property
-    def last_uptime_metric(self) -> UptimeMetric | None:
-        """Get the last uptime metric for this node."""
-        qs = UptimeMetric.objects.filter(mac=self.mac, reachable=True)
-        return qs.order_by("-created").first()
-
-    @cached_property
     def last_rate_metric(self) -> DataRateMetric | None:
         """Get the last data rate metric for this node."""
         qs = DataRateMetric.objects.filter(
@@ -87,14 +81,6 @@ class Node(models.Model):
     def check_results(self) -> CheckResults:
         """Get new or cached check results for this node."""
         return CheckResults.run_checks(self)
-
-    def get_is_contacted(self) -> bool | None:
-        """Get device contacted status."""
-        return self.last_uptime_metric is not None
-
-    def get_last_contacted_time(self) -> datetime | None:
-        """Get this time that this node was last contacted."""
-        return getattr(self.last_uptime_metric, "created", None)
 
     def get_cpu(self) -> bool | None:
         """Get device CPU usage."""

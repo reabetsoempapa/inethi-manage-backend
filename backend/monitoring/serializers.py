@@ -68,7 +68,6 @@ class NodeSerializer(DynamicFieldsModelSerializer):
 
     neighbours = PrimaryKeyRelatedField(many=True, read_only=True)
     status = SerializerMethodField()
-    last_contact = SerializerMethodField()
     checks = SerializerMethodField()
     latest_alerts = SerializerMethodField()
     num_unresolved_alerts = SerializerMethodField()
@@ -78,9 +77,6 @@ class NodeSerializer(DynamicFieldsModelSerializer):
 
     def get_status(self, node: models.Node) -> str:
         return node.check_results.status().value
-
-    def get_last_contact(self, node: models.Node) -> str | None:
-        return str(node.get_last_contacted_time())
 
     def get_checks(self, node: models.Node) -> list[dict]:
         """Run checks defined in settings.DEVICE_CHECKS"""
