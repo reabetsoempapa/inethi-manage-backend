@@ -78,7 +78,8 @@ def forward_request(
     except requests.exceptions.JSONDecodeError:
         response_data = r.content
     if hook_response:
-        hook_response(response_data)
+        data = hook_response(response_data, request)
+        return Response(data, status=r.status_code)
     return HttpResponse(r.content, status=r.status_code)
 
 
