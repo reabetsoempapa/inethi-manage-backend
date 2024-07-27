@@ -17,13 +17,20 @@ def run_pings():
     for device in Node.objects.filter(ip__isnull=False):
         try:
             ping_data = ping(device.ip)
-            is_online = ping_data["reachable"]
+            reachable = ping_data["reachable"]
         except ValueError:
-            is_online = False
-        # Update the device online status
-        if device.online != is_online:
-            device.online = is_online
-            device.save(update_fields=["online"])
+            reachable = False
+        # If the ping failed the device is offline
+        if not reachable:
+            device.status = Node.Status.OFFLINE
+        else:
+            # Otherwise log the time of the last successful ping. Not that a
+            # successful ping is not a guarantee that the node is online, it
+            # has to send the server a report first.
+            device.last_ping = timezone.now()
+        # Update the device reachable status
+        device.reachable = reachable
+        device.save(update_fields=["reachable", "last_ping", "status"])
         rtt_data = ping_data.pop("rtt", None)
         UptimeMetric.objects.create(mac=device.mac, **ping_data)
         if rtt_data:

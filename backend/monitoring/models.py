@@ -28,6 +28,9 @@ class Mesh(models.Model):
     name = models.CharField(max_length=128, primary_key=True)
     created = models.DateTimeField(auto_now_add=True)
     wlanconfs = models.ManyToManyField(WlanConf, blank=True)
+    location = models.CharField(max_length=255, null=True, blank=True)
+    lat = models.FloatField(default=0.0)
+    lon = models.FloatField(default=0.0)
 
 
 class Node(models.Model):
@@ -39,6 +42,14 @@ class Node(models.Model):
         UBNT_AC_MESH = "ubnt_ac_mesh", "Ubiquiti AC Mesh"
         TP_LINK_EAP = "tl_eap225_3_o", "TPLink EAP"
 
+    class Status(models.TextChoices):
+        """Status choices."""
+
+        UNKNOWN = "unknown", "Unknown"
+        OFFLINE = "offline", "Offline"
+        ONLINE = "online", "Online"
+        REBOOTING = "rebooting", "Rebooting"
+
     # Required Fields
     mac = MACAddressField(primary_key=True)
     name = models.CharField(max_length=255)
@@ -46,8 +57,13 @@ class Node(models.Model):
     mesh = models.ForeignKey(Mesh, on_delete=models.CASCADE, null=True, blank=True)
     adopted_at = models.DateTimeField(null=True, blank=True)
     last_contact = models.DateTimeField(null=True, blank=True)
+    last_ping = models.DateTimeField(null=True, blank=True)
     is_ap = models.BooleanField(default=False)
-    online = models.BooleanField(default=False)
+    reachable = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.UNKNOWN
+    )
+    reboot_flag = models.BooleanField(default=False)
     neighbours = models.ManyToManyField("Node", blank=True)
     description = models.CharField(max_length=255, null=True, blank=True)
     hardware = models.CharField(
@@ -57,6 +73,16 @@ class Node(models.Model):
     lat = models.FloatField(blank=True, null=True)
     lon = models.FloatField(blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def online(self) -> bool:
+        """Check whether this node is online."""
+        return self.status == Node.Status.ONLINE
+
+    @online.setter
+    def online(self, is_online: bool) -> None:
+        """Set this node's online status."""
+        self.status = Node.Status.ONLINE if is_online else Node.Status.OFFLINE
 
     @cached_property
     def last_rate_metric(self) -> DataRateMetric | None:

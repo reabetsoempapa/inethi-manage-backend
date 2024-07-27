@@ -25,7 +25,8 @@ def hook_reports(report: dict) -> None:
     # Both light and full reports send mode
     node.is_ap = report["mode"] == "ap"
     node.last_contact = timezone.now()
+    node.status = Node.Status.ONLINE
     # TODO: Process full report
-    node.save()
+    node.save(update_fields=["is_ap", "last_contact", "status"])
     logger.info("Received report for %s", node.mac)
     sync_device.delay(str(node.mac))

@@ -67,15 +67,18 @@ class NodeSerializer(DynamicFieldsModelSerializer):
         fields = "__all__"
 
     neighbours = PrimaryKeyRelatedField(many=True, read_only=True)
-    status = SerializerMethodField()
+    health_status = SerializerMethodField()
     checks = SerializerMethodField()
     latest_alerts = SerializerMethodField()
     num_unresolved_alerts = SerializerMethodField()
     upload_speed = SerializerMethodField()
     download_speed = SerializerMethodField()
+    lat = SerializerMethodField()
+    lon = SerializerMethodField()
     client_sessions = ClientSessionSerializer(many=True, read_only=True)
 
-    def get_status(self, node: models.Node) -> str:
+    def get_health_status(self, node: models.Node) -> str:
+        """Get the node's health status."""
         return node.check_results.status().value
 
     def get_checks(self, node: models.Node) -> list[dict]:
@@ -98,6 +101,14 @@ class NodeSerializer(DynamicFieldsModelSerializer):
     def get_download_speed(self, node: models.Node) -> float | None:
         """Get node's download speed."""
         return node.get_download_speed()
+
+    def get_lat(self, node: models.Node) -> float:
+        """Get node's latitude, or that of its mesh."""
+        return node.lat if node.lat is not None else node.mesh.lat
+
+    def get_lon(self, node: models.Node) -> float:
+        """Get node's longitude, or that of its mesh."""
+        return node.lon if node.lon is not None else node.mesh.lon
 
 
 class ServiceSerializer(ModelSerializer):
