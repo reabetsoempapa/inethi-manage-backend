@@ -6,12 +6,13 @@ from django.utils import timezone
 
 from monitoring.models import Node
 from sync.tasks import sync_device
+from ..utils import get_src_ip
 
 reports_logger = logging.getLogger("reports")
 logger = logging.getLogger(__file__)
 
 
-def hook_reports(report: dict) -> None:
+def hook_reports(report: dict, request) -> None:
     """Hook calls by nodes to the radiusdesk API."""
     # This little deepcopy bug wasted FOUR AND A HALF HOURS of my life :)
     # DON'T MODIFY DATA THAT'S GOING TO BE FORWARDED!!!!!
@@ -24,12 +25,16 @@ def hook_reports(report: dict) -> None:
         return
     # Both light and full reports send mode
     node.is_ap = report["mode"] == "ap"
+    node.ip = get_src_ip(request)
     node.last_contact = timezone.now()
     node.status = Node.Status.ONLINE
+    node.update_health_status(save=False)
     if report["report_type"] == "full":
         # TODO: Process full report
         pass
-    node.save(update_fields=["is_ap", "last_contact", "status"])
+    node.save(update_fields=["is_ap", "last_contact", "status", "health_status"])
+    # Generate an optional alert for this node based on the new status
+    node.generate_alert()
     logger.info("Received report for %s", node.mac)
 
 

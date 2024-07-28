@@ -11,7 +11,7 @@ logger = logging.getLogger(__file__)
 last_contact = None
 
 
-def hook_inform(encrypted_data: dict) -> None:
+def hook_inform(encrypted_data: dict, request) -> None:
     """Hook calls by nodes to the unifi API."""
     global last_contact
     # Want to throttle this a little, by default unifi sends reports

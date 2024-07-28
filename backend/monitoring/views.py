@@ -4,7 +4,6 @@ from rest_framework.response import Response
 from dynamic_fields.mixins import DynamicFieldsViewMixin
 
 from .models import Node
-from .checks import CheckStatus
 from . import models
 from . import serializers
 
@@ -15,7 +14,7 @@ def overview(request):
         "n_nodes": Node.objects.count(),
         "n_positioned_nodes": Node.objects.filter(lat__isnull=False, lon__isnull=False).count(),
         "n_unknown_nodes": Node.objects.filter(mesh__isnull=True).count(),
-        "n_ok_nodes": len([n for n in Node.objects.all() if n.check_results.status() == CheckStatus.OK]),  # TODO very inefficient
+        "n_ok_nodes": Node.objects.filter(health_status=Node.HealthStatus.OK).count()
     })
 
 

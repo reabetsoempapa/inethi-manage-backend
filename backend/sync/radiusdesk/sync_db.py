@@ -117,7 +117,7 @@ def sync_nodes(cursor):
             last_contact_from_ip,
         ) in result.fetchall():
             yield {  # Update fields
-                "ip": ip or last_contact_from_ip,
+                "ip": ip,
                 "is_ap": is_ap,
             }, {  # Create fields, these will be set initially but won't be synced
                 "name": name,

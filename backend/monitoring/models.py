@@ -4,7 +4,7 @@ from django.db import models
 from macaddress.fields import MACAddressField
 
 from metrics.models import ResourcesMetric, RTTMetric, DataRateMetric
-from .checks import CheckResults, CheckStatus
+from .checks import CheckResults
 
 
 class WlanConf(models.Model):
@@ -50,6 +50,15 @@ class Node(models.Model):
         ONLINE = "online", "Online"
         REBOOTING = "rebooting", "Rebooting"
 
+    class HealthStatus(models.TextChoices):
+        """Health status choices."""
+
+        UNKNOWN = "unknown", "Unknown"
+        CRITICAL = "critical", "Critical"
+        WARNING = "warning", "Warning"
+        DECENT = "decent", "Decent"
+        OK = "ok", "Ok"
+
     # Required Fields
     mac = MACAddressField(primary_key=True)
     name = models.CharField(max_length=255)
@@ -62,6 +71,9 @@ class Node(models.Model):
     reachable = models.BooleanField(default=False)
     status = models.CharField(
         max_length=16, choices=Status.choices, default=Status.UNKNOWN
+    )
+    health_status = models.CharField(
+        max_length=16, choices=HealthStatus.choices, default=HealthStatus.UNKNOWN
     )
     reboot_flag = models.BooleanField(default=False)
     neighbours = models.ManyToManyField("Node", blank=True)
@@ -127,6 +139,55 @@ class Node(models.Model):
         """Get device upload speed."""
         return getattr(self.last_rate_metric, "rx_rate", None)
 
+    def get_health_status(self) -> HealthStatus:
+        """Convert CheckResults into health status."""
+        if self.check_results.oll_korrect():
+            return Node.HealthStatus.OK
+        elif self.check_results.fewer_than_half_failed():
+            return Node.HealthStatus.DECENT
+        elif self.check_results.more_than_half_failed_but_not_all():
+            return Node.HealthStatus.WARNING
+        # All failed
+        return Node.HealthStatus.CRITICAL
+
+    def update_health_status(self, save: bool = True) -> None:
+        """Run health checks and then update this node's health status."""
+        self.health_status = self.get_health_status()
+        if save:
+            self.save(update_fields=["health_status"])
+
+    def generate_alert(self) -> bool:
+        """Generate an alert for this node, returns False if no alert is generated."""
+        alert = Alert.from_node(self)
+        if not alert:
+            return False
+        current_status_level = alert.level if alert else -1
+        unresolved_alerts = Alert.objects.filter(node=self, resolved=False)
+        # Only generate a new alert if the current state is worse than
+        # that of an alert triggered last (or there are no previous alerts).
+        # Otherwise we would be generating new alerts for the same state,
+        # e.g. generating a WARNING alert for a node that has already got an
+        # unresolved WARNING.
+        if alert:
+            latest_alert = unresolved_alerts.order_by("-created").first()
+            # Case 1: There is no previous alert, so a new alert is generated
+            # regardless of what the status may have been before
+            if not latest_alert:
+                alert.save()
+            # Case 2: A new alert is generated because is is worse than the previous alerts 
+            elif current_status_level > latest_alert.level:
+                alert.save()
+            # Case 3: The new report is as bad as previous ones, but may have
+            # changed its reasons, so we generate a new one anyway.
+            elif current_status_level == latest_alert.level and alert.text != latest_alert.text:
+                alert.save()
+        # Mark all previous alerts that were worse than the current status as resolved.
+        # E.g. if a node generated a CRITICAL alert, but is now OK, that previous alert
+        # is assumed to have been resolved.
+        alerts_worse_than_current_status = unresolved_alerts.filter(level__gt=current_status_level)
+        alerts_worse_than_current_status.update(resolved=True)
+        return True
+
     def __str__(self):
         return f"Node {self.name} ({self.mac})"
 
@@ -151,31 +212,59 @@ class ClientSession(models.Model):
 class Alert(models.Model):
     """Alert sent to network managers."""
 
-    ALERT_LEVELS = (
-        (3, "Critical"),
-        (2, "Warning"),
-        (1, "Decent"),
-        (0, "OK"),
-    )
+    class Level(models.IntegerChoices):
+        """Alert level choices."""
 
-    level = models.SmallIntegerField(choices=ALERT_LEVELS)
+        WARNING = 1, "Warning"
+        ERROR = 2, "ERROR"
+        CRITICAL = 3, "Critical"
+
+    TITLE_OFFLINE = "Node is offline"
+    TITLE_HEALTH_BAD = "Node's health is bad"
+    TITLE_HEALTH_CRITICAL = "Node's health is critical"
+
+    TEXT_OFFLINE = "The device is unreachable by ping"
+    TEXT_HEALTH_BAD_OR_CRITICAL = "The following health checks failed: {}"
+
+    level = models.SmallIntegerField(choices=Level.choices)
+    title = models.CharField(max_length=100)
     text = models.CharField(max_length=255)
     created = models.DateTimeField(auto_now_add=True)
     resolved = models.BooleanField(default=False)
     node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name="alerts")
 
     @classmethod
-    def from_status(cls, node: Node, status: CheckStatus) -> "Alert":
+    def from_node(cls, node: Node) -> "Alert | None":
         """Generate an alert from a node's status."""
-        return cls(
-            level=status.alert_level(),
-            text=node.check_results.alert_summary(),
-            node=node,
-        )
-
-    def type(self) -> str:
-        """Alert type name."""
-        return {3: "Critical", 2: "Warning", 1: "Decent", 0: "OK"}[self.level]
+        if node.status == Node.Status.OFFLINE:
+            return Alert(
+                level=Alert.Level.WARNING,
+                title=Alert.TITLE_OFFLINE,
+                text=Alert.TEXT_OFFLINE,
+                node=node,
+            )
+        if node.health_status != Node.HealthStatus.OK:
+            health_checks_failed = ", ".join(
+                c.key for c in node.check_results if not c.passed
+            )
+            if node.health_status == Node.HealthStatus.CRITICAL:
+                return cls(
+                    level=Alert.Level.CRITICAL,
+                    title=Alert.TITLE_HEALTH_CRITICAL,
+                    text=Alert.TEXT_HEALTH_BAD_OR_CRITICAL.format(health_checks_failed),
+                    node=node,
+                )
+            if node.health_status in (
+                Node.HealthStatus.WARNING,
+                Node.HealthStatus.DECENT,
+            ):
+                return Alert(
+                    level=Alert.Level.ERROR,
+                    title=Alert.TITLE_HEALTH_BAD,
+                    text=Alert.TEXT_HEALTH_BAD_OR_CRITICAL.format(health_checks_failed),
+                    node=node,
+                )
+        return None
 
     def __str__(self):
         return f"Alert for {self.node} level={self.level} [{self.created}]"

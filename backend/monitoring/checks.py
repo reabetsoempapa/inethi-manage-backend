@@ -1,5 +1,4 @@
 from dataclasses import dataclass, asdict
-import enum
 from typing import TYPE_CHECKING, Any
 from django.conf import settings
 
@@ -9,30 +8,12 @@ else:
     Node = Any
 
 
-class CheckStatus(enum.Enum):
-    """Status of a device check results."""
-
-    CRITICAL = "Critical"
-    WARNING = "Warning"
-    DECENT = "Decent"
-    OK = "Ok"
-
-    def alert_level(self) -> int:
-        """Convert status to an alert level."""
-        if self == CheckStatus.OK:
-            return 0
-        if self == CheckStatus.DECENT:
-            return 1
-        if self == CheckStatus.WARNING:
-            return 2
-        return 3
-
-
 @dataclass
 class CheckResult:
     """The result for a particular device check."""
 
     title: str
+    key: str
     passed: bool | None
     feedback: str
 
@@ -59,6 +40,7 @@ class CheckResults(list[CheckResult]):
             results.append(
                 CheckResult(
                     title=check["title"],
+                    key=key,
                     passed=passed,
                     feedback=check["feedback"][passed],
                 )
@@ -90,17 +72,6 @@ class CheckResults(list[CheckResult]):
     def all_failed(self) -> bool:
         """Check whether all of the checks failed."""
         return self.num_passed == 0
-
-    def status(self) -> CheckStatus:
-        """Node status, based on these check results."""
-        if self.oll_korrect():
-            return CheckStatus.OK
-        if self.fewer_than_half_failed():
-            return CheckStatus.DECENT
-        if self.more_than_half_failed_but_not_all():
-            return CheckStatus.WARNING
-        # All failed
-        return CheckStatus.CRITICAL
 
     def alert_summary(self) -> str:
         """Summary of failing checks, used to generate alerts."""

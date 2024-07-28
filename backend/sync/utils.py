@@ -55,6 +55,17 @@ def aware_timestamp(v: int) -> datetime:
     return make_aware(datetime.fromtimestamp(v / 1e3), pytz.UTC)
 
 
+def get_src_ip(request: HttpRequest) -> str:
+    """Get source IP address."""
+    # From https://stackoverflow.com/q/4581789/7337283
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[-1]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
 def forward_request(
     url: str,
     request: HttpRequest,
@@ -63,7 +74,8 @@ def forward_request(
 ) -> Response:
     """Duplicate a GET or POST request to another URL."""
     if hook_request:
-        hook_request(request.data)
+        hook_request(request.data, request)
+    # TODO: Need to set HTTP_X_FORWARDED_FOR so that the destination get the correct source IP
     r = requests.request(
         request.method,
         url,

@@ -6,6 +6,7 @@ from celery.utils.log import get_task_logger
 from django.utils import timezone
 
 from monitoring.models import Node
+from sync.tasks import sync_all_devices
 from .models import UptimeMetric, RTTMetric, Metric
 from .ping import ping
 
@@ -22,7 +23,10 @@ def run_pings():
             reachable = False
         # If the ping failed the device is offline
         if not reachable:
-            device.status = Node.Status.OFFLINE
+            # If the ping fails while the device is rebooting there
+            # is no need to update its status to 'offline'
+            if device.status != Node.Status.REBOOTING:
+                device.status = Node.Status.OFFLINE
         else:
             # Otherwise log the time of the last successful ping. Not that a
             # successful ping is not a guarantee that the node is online, it
@@ -30,12 +34,19 @@ def run_pings():
             device.last_ping = timezone.now()
         # Update the device reachable status
         device.reachable = reachable
-        device.save(update_fields=["reachable", "last_ping", "status"])
         rtt_data = ping_data.pop("rtt", None)
         UptimeMetric.objects.create(mac=device.mac, **ping_data)
         if rtt_data:
             RTTMetric.objects.create(mac=device.mac, **rtt_data)
-        logger.info(f"PING {device.ip}")
+        # Update the device health status
+        device.update_health_status(save=False)
+        device.save(update_fields=["reachable", "last_ping", "status", "health_status"])
+        # Optionally generate alerts for this device based on the new status
+        device.generate_alert()
+        logger.info(f"PING {device.ip} (reachable={reachable})")
+    # Sync all devices so that updates are passed to monitoring instances by websocket.
+    # Note not calling delay() here, I'm happy to have this run on the same thread
+    sync_all_devices()
 
 
 def aggregate_metrics(metric_type: Type[Metric], to_gran: Metric.Granularity) -> None:

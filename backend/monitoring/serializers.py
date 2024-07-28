@@ -23,7 +23,6 @@ class AlertSerializer(ModelSerializer):
     """Serializes Alert objects from django model to JSON."""
 
     node = SerializerMethodField()
-    type = SerializerMethodField()
 
     class Meta:
         """ServiceSerializer metadata."""
@@ -31,14 +30,11 @@ class AlertSerializer(ModelSerializer):
         model = models.Alert
         fields = "__all__"
 
-    def get_node(self, alert):
+    def get_node(self, alert: models.Alert) -> str:
         # The default PrimaryKeyRelatedField doesn't work, because Node's primary
         # key is a MacAddressField, and rest_framework has trouble serializing
         # that to JSON. As a workaround, I manually stringify it here.
         return str(alert.node.mac)
-
-    def get_type(self, alert):
-        return alert.type()
 
 
 class ClientSessionSerializer(ModelSerializer):
@@ -67,7 +63,6 @@ class NodeSerializer(DynamicFieldsModelSerializer):
         fields = "__all__"
 
     neighbours = PrimaryKeyRelatedField(many=True, read_only=True)
-    health_status = SerializerMethodField()
     checks = SerializerMethodField()
     latest_alerts = SerializerMethodField()
     num_unresolved_alerts = SerializerMethodField()
@@ -76,10 +71,6 @@ class NodeSerializer(DynamicFieldsModelSerializer):
     lat = SerializerMethodField()
     lon = SerializerMethodField()
     client_sessions = ClientSessionSerializer(many=True, read_only=True)
-
-    def get_health_status(self, node: models.Node) -> str:
-        """Get the node's health status."""
-        return node.check_results.status().value
 
     def get_checks(self, node: models.Node) -> list[dict]:
         """Run checks defined in settings.DEVICE_CHECKS"""
