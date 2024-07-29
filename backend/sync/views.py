@@ -1,4 +1,10 @@
+import logging
+
 from revproxy.views import ProxyView
+from django.http import HttpResponse
+from urllib3.exceptions import MaxRetryError
+
+logger = logging.getLogger(__file__)
 
 
 class HookProxyView(ProxyView):
@@ -15,7 +21,12 @@ class HookProxyView(ProxyView):
         request_data = None
         if self.hook_request:
             request_data = self.hook_request(request, path)
-        response = super().dispatch(request, path)
+        try:
+            response = super().dispatch(request, path)
+        except MaxRetryError:
+            # 504 gateway timeout
+            logger.error("Error forwarding request to %s, max retries reached", self.upstream)
+            return HttpResponse(status=504)
         if self.hook_request:
             self.hook_request(request, path, response, request_data)
         return response
