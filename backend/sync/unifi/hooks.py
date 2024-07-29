@@ -39,7 +39,8 @@ def hook_unifi_inform(request) -> None:
     node = Node.objects.filter(mac=data["mac"]).first()
     if node:
         node.last_contact = timezone.now()
-        node.save(update_fields=["last_contact"])
+        node.status = Node.Status.ONLINE
+        node.save(update_fields=["last_contact", "status"])
         logger.info("Received report for %s", node.mac)
         sync_device.delay(str(node.mac))
 
