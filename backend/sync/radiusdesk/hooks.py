@@ -25,14 +25,14 @@ def hook_reports(report: dict, request) -> None:
         return
     # Both light and full reports send mode
     node.is_ap = report["mode"] == "ap"
-    node.ip = get_src_ip(request)
+    node.ip = get_src_ip(request) or node.ip
     node.last_contact = timezone.now()
     node.status = Node.Status.ONLINE
     node.update_health_status(save=False)
     if report["report_type"] == "full":
         # TODO: Process full report
         pass
-    node.save(update_fields=["is_ap", "last_contact", "status", "health_status"])
+    node.save(update_fields=["is_ap", "last_contact", "status", "health_status", "ip"])
     # Generate an optional alert for this node based on the new status
     node.generate_alert()
     logger.info("Received report for %s", node.mac)
