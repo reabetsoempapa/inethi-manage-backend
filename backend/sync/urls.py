@@ -1,26 +1,23 @@
 from django.conf import settings
-from django.urls import path
+from django.urls import re_path
 
-from .unifi.parsers import InformParser
-from .radiusdesk.hooks import hook_reports, hook_report_response
-from .unifi.hooks import hook_inform
-from .utils import forward_view
+from .radiusdesk.hooks import hook_rd
+from .unifi.hooks import hook_unifi
+from .views import HookProxyView
 
 urlpatterns = [
-    path(
-        "rd/submit_report/",
-        forward_view(
-            settings.RD_REPORT_URL,
-            hook_request=hook_reports,
-            hook_response=hook_report_response,
+    re_path(
+        r"rd/(?P<path>.*)",
+        HookProxyView.as_view(
+            upstream=settings.RD_URL,
+            hook_request=hook_rd,
         ),
     ),
-    path("rd/get_actions/", forward_view(settings.RD_ACTIONS_URL)),
-    path("rd/get_config/", forward_view(settings.RD_CONFIG_URL)),
-    path(
-        "unifi/inform/",
-        forward_view(
-            settings.UNIFI_INFORM_URL, parser=InformParser, hook_request=hook_inform
+    re_path(
+        r"unifi/(?P<path>.*)",
+        HookProxyView.as_view(
+            upstream=settings.UNIFI_URL,
+            hook_request=hook_unifi,
         ),
     ),
 ]

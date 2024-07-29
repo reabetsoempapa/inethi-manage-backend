@@ -1,18 +1,9 @@
-from typing import Callable, Type
+from typing import Type
 from datetime import datetime
-import requests
 
 from django.db import models
 from django.utils.timezone import make_aware
-from django.http import HttpRequest, HttpResponse
-from rest_framework.decorators import (
-    authentication_classes,
-    permission_classes,
-    parser_classes,
-    api_view,
-)
-from rest_framework.parsers import JSONParser
-from rest_framework.response import Response
+from django.http import HttpRequest
 import pytz
 
 
@@ -64,50 +55,3 @@ def get_src_ip(request: HttpRequest) -> str:
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
-
-
-def forward_request(
-    url: str,
-    request: HttpRequest,
-    hook_request: Callable | None,
-    hook_response: Callable | None,
-) -> Response:
-    """Duplicate a GET or POST request to another URL."""
-    if hook_request:
-        hook_request(request.data, request)
-    # TODO: Need to set HTTP_X_FORWARDED_FOR so that the destination get the correct source IP
-    r = requests.request(
-        request.method,
-        url,
-        params=request.query_params,
-        data=request.data,
-        headers=request.headers,
-        cookies=request.COOKIES,
-        timeout=20
-    )
-    try:
-        response_data = r.json()
-    except requests.exceptions.JSONDecodeError:
-        response_data = r.content
-    if hook_response:
-        data = hook_response(response_data, request)
-        return Response(data, status=r.status_code)
-    return HttpResponse(r.content, status=r.status_code)
-
-
-def forward_view(
-    url: str,
-    hook_request: Callable | None = None,
-    hook_response: Callable | None = None,
-    parser=JSONParser,
-) -> Callable[[HttpRequest], HttpResponse]:
-    """Generate a view that forwards GET or POST requests."""
-
-    @api_view(["GET", "POST"])
-    @parser_classes([parser])
-    @authentication_classes([])
-    @permission_classes([])
-    def view(request):
-        return forward_request(url, request, hook_request, hook_response)
-
-    return view

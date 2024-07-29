@@ -11,9 +11,10 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from datetime import timedelta
-from django.utils import timezone
 import os
 from pathlib import Path
+
+from django.utils import timezone
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -66,6 +67,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "django_keycloak",
+    "revproxy",
     "accounts",
     "monitoring",
     "metrics",
@@ -351,7 +353,7 @@ LOGGING = {
         "report": {
             "format": "{asctime} {message}",
             "style": "{",
-        }
+        },
     },
     "handlers": {
         "console_info": {
@@ -393,6 +395,6 @@ LOGGING = {
             "handlers": ["reports_file"],
             "level": "DEBUG",
             "propagate": False,
-        }
+        },
     },
 }
