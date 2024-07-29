@@ -4,7 +4,8 @@ class MetricsRouter:
     """
 
     module_db_map = {
-        "metrics": "metrics_db"
+        "metrics": "metrics_db",
+        "radius": "radius_db"
     }
 
     def db_for_read(self, model, **hints):

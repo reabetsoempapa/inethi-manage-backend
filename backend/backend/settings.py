@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "payments",
     "wallet",
     "sync",
+    "radius"
 ]
 # Keycloak config
 AUTHENTICATION_BACKENDS = ["django_keycloak.backends.KeycloakAuthorizationCodeBackend"]
@@ -96,7 +97,7 @@ KEYCLOAK_CLIENTS = {
 RD_DB_NAME = "rd"
 RD_DB_USER = "rd"
 RD_DB_PASSWORD = "rd"
-RD_DB_HOST = "localhost"
+RD_DB_HOST = "127.0.0.1"
 RD_DB_PORT = "3306"
 RD_URL = os.environ["RADIUSDESK_URL"]
 RD_CONFIG_URL = f"{RD_URL}/cake4/rd_cake/nodes/get-config-for-node.json"
@@ -235,6 +236,14 @@ if DEBUG:
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "metrics.sqlite3",
         },
+        "radius_db": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": RD_DB_NAME,
+            "USER": RD_DB_USER,
+            "PASSWORD": RD_DB_PASSWORD,
+            "HOST": RD_DB_HOST,
+            "PORT": RD_DB_PORT
+        }
     }
 else:
     DATABASES = {
