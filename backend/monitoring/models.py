@@ -23,7 +23,15 @@ class WlanConf(models.Model):
 
 
 class Mesh(models.Model):
-    """Mesh consisting of nodes."""
+    """Mesh consisting of nodes.
+    
+    Radiusdesk differentiates between a realm, a mesh and a site
+    (I believe, where realm > mesh > site) but to keep things simple
+    we keep nodes in a simple mesh group.
+    """
+
+    class Meta:
+        verbose_name_plural = "meshes"
 
     name = models.CharField(max_length=128, primary_key=True)
     created = models.DateTimeField(auto_now_add=True)
@@ -34,7 +42,16 @@ class Mesh(models.Model):
 
 
 class Node(models.Model):
-    """Database table for network devices."""
+    """Database table for network devices.
+
+    Nodes can be both APs (Access Points) or Mesh Nodes. Radiusdesk has two
+    separate tables for these two types, but we treat them as the same table
+    (albeit with the `is_ap` and `nas_name` fields.)
+    
+    I sometimes use the terms 'node' and 'device' interchangably, although 'node' is
+    probably more accurate seeing that e.g. client devices are also network devices
+    but they aren't network nodes that can route data.
+    """
 
     class Hardware(models.TextChoices):
         """Hardware choices."""
@@ -60,31 +77,86 @@ class Node(models.Model):
         OK = "ok", "Ok"
 
     # Required Fields
-    mac = MACAddressField(primary_key=True)
-    name = models.CharField(max_length=255)
+    mac = MACAddressField(primary_key=True, help_text="Physical MAC address")
+    name = models.CharField(max_length=255, unique=True, help_text="Unique device name")
     # Optional Fields
     mesh = models.ForeignKey(Mesh, on_delete=models.CASCADE, null=True, blank=True)
-    adopted_at = models.DateTimeField(null=True, blank=True)
-    last_contact = models.DateTimeField(null=True, blank=True)
-    last_ping = models.DateTimeField(null=True, blank=True)
-    is_ap = models.BooleanField(default=False)
+    adopted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="The date & time that this device was adopted into its mesh",
+    )
+    last_contact = models.DateTimeField(
+        null=True, blank=True, help_text="The time of last active contect"
+    )
+    last_ping = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="The time that this device was last pinged by the server",
+    )
+    is_ap = models.BooleanField(
+        default=False,
+        help_text=(
+            "Determines whether this device is an AP (Access Point) "
+            "which clients can connect to, or a mesh node that connects other nodes"
+        ),
+    )
+    nas_name = models.CharField(
+        max_length=128,
+        null=True,
+        blank=True,
+        help_text="The name of the NAS device for this node",
+    )
     reachable = models.BooleanField(default=False)
     status = models.CharField(
-        max_length=16, choices=Status.choices, default=Status.UNKNOWN
+        max_length=16,
+        choices=Status.choices,
+        default=Status.UNKNOWN,
+        help_text="The online status of this device",
     )
     health_status = models.CharField(
-        max_length=16, choices=HealthStatus.choices, default=HealthStatus.UNKNOWN
+        max_length=16,
+        choices=HealthStatus.choices,
+        default=HealthStatus.UNKNOWN,
+        help_text=(
+            "The health status of this node. "
+            "Even devices that are online way not be functioning correctly"
+        ),
     )
-    reboot_flag = models.BooleanField(default=False)
-    neighbours = models.ManyToManyField("Node", blank=True)
-    description = models.CharField(max_length=255, null=True, blank=True)
+    reboot_flag = models.BooleanField(
+        default=False,
+        help_text="Will reboot the device the next time it tries to contact the server",
+    )
+    neighbours = models.ManyToManyField(
+        "Node", blank=True, help_text="Neighbouring nodes in the mesh"
+    )
+    description = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="A user-friendly description of this device",
+    )
     hardware = models.CharField(
-        max_length=255, choices=Hardware.choices, default=Hardware.TP_LINK_EAP
+        max_length=255,
+        choices=Hardware.choices,
+        default=Hardware.TP_LINK_EAP,
+        help_text="The physical device type",
     )
-    ip = models.CharField(max_length=255, blank=True, null=True)
-    lat = models.FloatField(blank=True, null=True)
-    lon = models.FloatField(blank=True, null=True)
-    created = models.DateTimeField(auto_now_add=True)
+    ip = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="The IP address of the device in the network",
+    )
+    lat = models.FloatField(
+        blank=True, null=True, help_text="Geographical device latitude"
+    )
+    lon = models.FloatField(
+        blank=True, null=True, help_text="Geographical device longitude"
+    )
+    created = models.DateTimeField(
+        auto_now_add=True, help_text="The date & time this device was created"
+    )
 
     @property
     def online(self) -> bool:
@@ -174,17 +246,22 @@ class Node(models.Model):
             # regardless of what the status may have been before
             if not latest_alert:
                 alert.save()
-            # Case 2: A new alert is generated because is is worse than the previous alerts 
+            # Case 2: A new alert is generated because is is worse than the previous alerts
             elif current_status_level > latest_alert.level:
                 alert.save()
             # Case 3: The new report is as bad as previous ones, but may have
             # changed its reasons, so we generate a new one anyway.
-            elif current_status_level == latest_alert.level and alert.text != latest_alert.text:
+            elif (
+                current_status_level == latest_alert.level
+                and alert.text != latest_alert.text
+            ):
                 alert.save()
         # Mark all previous alerts that were worse than the current status as resolved.
         # E.g. if a node generated a CRITICAL alert, but is now OK, that previous alert
         # is assumed to have been resolved.
-        alerts_worse_than_current_status = unresolved_alerts.filter(level__gt=current_status_level)
+        alerts_worse_than_current_status = unresolved_alerts.filter(
+            level__gt=current_status_level
+        )
         alerts_worse_than_current_status.update(resolved=True)
         return True
 

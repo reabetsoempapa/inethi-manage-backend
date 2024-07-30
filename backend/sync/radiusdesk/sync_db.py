@@ -22,12 +22,21 @@ GET_MESHES_QUERY = """
 SELECT c.name, c.created
 FROM clouds c
 """
+# This is a bit painful, radiusdesk stores nodes and APs in separate tables, but have almost identical
+# fields. We sync the same data here, except that it's slightly more difficult to get
+# the mesh name associated with an ap than a node.
+# NOTE: I'm not syncing the nas_name, because for some reason radiusdesk doesn't store
+# a direct relation between AP/node and NAS??? There are some tenuous links
+# (i.e. aps.last_contact_from_ip = nas.shortname) but currently the proxy server confuses the
+# last_contact_from_ip field. And come to think of it, how come radiusdesk stores the NAS IP
+# as nas.shortname? Surely there are better ways of doing this (like STORING THE NAS NAME ON THE NODE???)
+# TODO: Fix this sync
 GET_NODES_AND_APS_QUERY = """
-SELECT m.name, n.name, false, n.description, n.mac, n.hardware, n.ip, n.last_contact_from_ip
+SELECT m.name, n.name, false, n.description, n.mac, n.hardware, n.last_contact_from_ip
 FROM nodes n
 JOIN meshes m
 ON n.mesh_id = m.id;
-SELECT c.name, a.name, true, a.description, a.mac, a.hardware, null, a.last_contact_from_ip
+SELECT c.name, a.name, true, a.description, a.mac, a.hardware, a.last_contact_from_ip
 FROM aps a
 JOIN ap_profiles p
 ON a.ap_profile_id = p.id
@@ -113,11 +122,10 @@ def sync_nodes(cursor):
             description,
             mac,
             hardware,
-            ip,
             last_contact_from_ip,
         ) in result.fetchall():
             yield {  # Update fields
-                "ip": ip,
+                # "ip": last_contact_from_ip  # Not going to update the IP for now, gets confused by proxy
                 "is_ap": is_ap,
             }, {  # Create fields, these will be set initially but won't be synced
                 "name": name,
