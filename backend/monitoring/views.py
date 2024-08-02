@@ -11,10 +11,11 @@ from . import serializers
 @api_view()
 def overview(request):
     return Response({
-        "n_nodes": Node.objects.count(),
+        "n_nodes": Node.objects.filter(mesh__isnull=False).count(),
         "n_positioned_nodes": Node.objects.filter(lat__isnull=False, lon__isnull=False).count(),
         "n_unknown_nodes": Node.objects.filter(mesh__isnull=True).count(),
-        "n_ok_nodes": Node.objects.filter(health_status=Node.HealthStatus.OK).count()
+        "n_ok_nodes": Node.objects.filter(health_status=Node.HealthStatus.OK).count(),
+        "n_online_nodes": Node.objects.filter(status=Node.Status.ONLINE).count(),
     })
 
 
