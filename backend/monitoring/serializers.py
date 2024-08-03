@@ -1,11 +1,8 @@
-from rest_framework.serializers import (
-    ModelSerializer,
-    PrimaryKeyRelatedField,
-    SerializerMethodField,
-    SlugRelatedField
-)
+from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from dynamic_fields.serializers import DynamicFieldsModelSerializer
 
+from radius.models import Radacct
+from radius.serializers import RadacctSerializer
 from . import models
 
 
@@ -37,22 +34,6 @@ class AlertSerializer(ModelSerializer):
         return str(alert.node.mac)
 
 
-class ClientSessionSerializer(ModelSerializer):
-    """Serializes ClientSession objects from django model to JSON."""
-
-    uplink = SerializerMethodField()
-    user = SlugRelatedField(read_only=True, slug_field="username")
-
-    class Meta:
-        """ClientSessionSerializer metadata."""
-
-        model = models.ClientSession
-        fields = "__all__"
-
-    def get_uplink(self, client_session):
-        return str(client_session.uplink.mac)
-
-
 class NodeSerializer(DynamicFieldsModelSerializer):
     """Serializes Node objects from django model to JSON."""
 
@@ -62,7 +43,7 @@ class NodeSerializer(DynamicFieldsModelSerializer):
         model = models.Node
         fields = "__all__"
 
-    neighbours = PrimaryKeyRelatedField(many=True, read_only=True)
+    neighbours = SerializerMethodField()
     checks = SerializerMethodField()
     latest_alerts = SerializerMethodField()
     num_unresolved_alerts = SerializerMethodField()
@@ -70,7 +51,7 @@ class NodeSerializer(DynamicFieldsModelSerializer):
     download_speed = SerializerMethodField()
     mesh_lat = SerializerMethodField()
     mesh_lon = SerializerMethodField()
-    client_sessions = ClientSessionSerializer(many=True, read_only=True)
+    client_sessions = SerializerMethodField()
 
     def get_checks(self, node: models.Node) -> list[dict]:
         """Run checks defined in settings.DEVICE_CHECKS"""
@@ -100,6 +81,18 @@ class NodeSerializer(DynamicFieldsModelSerializer):
     def get_mesh_lon(self, node: models.Node) -> float:
         """Get this node's meshe's longitude."""
         return node.mesh.lon
+
+    def get_neighbours(self, node: models.Node) -> list[str]:
+        """Get neighbour's MAC addresses."""
+        # This EUI field serialization thing is getting super annoying...
+        # This should just be a PrimaryKeyRelatedField, 
+        return [str(n.mac) for n in node.neighbours.all()]
+
+    def get_client_sessions(self, node: models.Node) -> list[dict]:
+        """Serialize radacct objects related to this node's NAS."""
+        radaccts = Radacct.objects.filter(nasidentifier=node.nas_name)
+        serializer = RadacctSerializer(radaccts, many=True)
+        return serializer.data
 
 
 class ServiceSerializer(ModelSerializer):

@@ -1,5 +1,4 @@
 from django.utils.functional import cached_property
-from django.contrib.auth.models import User
 from django.db import models
 from macaddress.fields import MACAddressField
 
@@ -267,23 +266,6 @@ class Node(models.Model):
 
     def __str__(self):
         return f"Node {self.name} ({self.mac})"
-
-
-class ClientSession(models.Model):
-    """A client session at a given access point."""
-
-    mac = MACAddressField()
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sessions")
-    uplink = models.ForeignKey(
-        Node, on_delete=models.CASCADE, related_name="client_sessions"
-    )
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
-    bytes_recv = models.IntegerField()
-    bytes_sent = models.IntegerField()
-
-    def __str__(self):
-        return f"Client Session: {self.user.username}@{self.uplink} [{self.start_time}-{self.end_time}]"
 
 
 class Alert(models.Model):

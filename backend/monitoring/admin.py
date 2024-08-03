@@ -11,6 +11,5 @@ class NodeAdmin(admin.ModelAdmin):
 
 admin.site.register(models.Alert)
 admin.site.register(models.Mesh)
-admin.site.register(models.ClientSession)
 admin.site.register(models.Service)
 admin.site.register(models.WlanConf)

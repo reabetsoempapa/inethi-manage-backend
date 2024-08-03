@@ -8,7 +8,7 @@ from django.conf import settings
 from django.utils.timezone import make_aware, now
 from django.contrib.auth.models import User
 
-from monitoring.models import Mesh, Node, ClientSession
+from monitoring.models import Mesh, Node
 from metrics.models import (
     FailuresMetric,
     ResourcesMetric,
@@ -86,17 +86,6 @@ ON l.ap_id = a.id;
 GET_UNKNOWN_NODES_QUERY = """
 SELECT u.mac, u.from_ip, u.last_contact, u.name
 FROM unknown_nodes u;
-"""
-# This is the most perverse way of joining the radacct tabel to the ap table, but there doesn't
-# seem to be a more direct way to do it - the calledstationid doesn't match an ap (or an ap_station)
-# and I can't link nasidentifiers to APs either!
-GET_CONNECTED_CLIENTS_QUERY = """
-SELECT r.username, ap.mac, r.acctstarttime, r.acctstoptime, r.acctinputoctets, r.acctoutputoctets, r.callingstationid
-FROM radacct r
-JOIN data_collectors d
-ON d.cp_mac = r.calledstationid
-JOIN aps ap
-ON ap.lan_ip = d.public_ip;
 """
 
 TZ = pytz.timezone("Africa/Johannesburg")
@@ -214,43 +203,6 @@ def sync_node_resources_metrics(cursor):
                 "memory": mem_free / mem_total * 100,
                 "cpu": -1,  # Radiusdesk doesn't track CPU usage??
             }, {"created": now()}
-
-
-@bulk_sync(ClientSession)
-def sync_client_sessions(cursor):
-    """Sync ClientSession objects from the radiusdesk database."""
-    # Side effect of the crappy join is that sometimes when an IP changes,
-    # ya lose information on the data collectors
-    # cursor.execute("SELECT mac, lan_ip FROM aps;")
-    # print(cursor.fetchall())
-    # cursor.execute("SELECT cp_mac, public_ip FROM data_collectors;")
-    # print(cursor.fetchall())
-    cursor.execute(GET_CONNECTED_CLIENTS_QUERY)
-    for (
-        username,
-        ap_mac,
-        acctstarttime,
-        acctstoptime,
-        acctinputoctets,
-        acctoutputoctets,
-        callingstationid,
-    ) in cursor.fetchall():
-        try:
-            uplink = Node.objects.get(mac=ap_mac)
-        except Node.DoesNotExist:
-            print(f"Skipping uplink {ap_mac}, does not exist")
-            continue
-        user, _ = User.objects.get_or_create(username=username)
-        yield {
-            "user": user,
-            "bytes_recv": acctinputoctets,
-            "bytes_sent": acctoutputoctets,
-            "end_time": make_aware(acctstoptime, TZ) if acctstoptime else None,
-        }, {  # MAC, start time and uplink uniquely identify session
-            "mac": callingstationid,
-            "start_time": make_aware(acctstarttime, TZ),
-            "uplink": uplink,
-        }
 
 
 def run():

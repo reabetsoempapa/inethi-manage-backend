@@ -27,4 +27,5 @@ urlpatterns = [
     path("metrics/", include("metrics.urls")),
     path("wallet/", include("wallet.urls")),
     path("sync/", include("sync.urls")),
+    path("radius/", include("radius.urls")),
 ]
