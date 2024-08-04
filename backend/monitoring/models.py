@@ -45,14 +45,17 @@ class MeshSettings(models.Model):
 
     mesh = models.OneToOneField(Mesh, on_delete=models.CASCADE, related_name="settings")
 
-    warning_daily_data_usage = models.FloatField(null=True, blank=True)
-    warning_hourly_data_usage = models.FloatField(null=True, blank=True)
-    warning_daily_speed = models.FloatField(null=True, blank=True)
-    warning_hourly_speed = models.FloatField(null=True, blank=True)
-    warning_daily_rtt = models.IntegerField(null=True, blank=True)
-    warning_hourly_rtt = models.IntegerField(null=True, blank=True)
-    warning_daily_uptime = models.IntegerField(null=True, blank=True)
-    warning_hourly_uptime = models.IntegerField(null=True, blank=True)
+    check_upload_speed = models.FloatField(null=True, blank=True)
+    check_download_speed = models.FloatField(null=True, blank=True)
+    check_rtt = models.IntegerField(null=True, blank=True)
+    check_cpu = models.IntegerField(null=True, blank=True)
+    check_mem = models.IntegerField(null=True, blank=True)
+    check_active = models.DurationField(null=True, blank=True)
+    check_ping = models.DurationField(null=True, blank=True)
+    check_daily_data_usage = models.FloatField(null=True, blank=True)
+    check_hourly_data_usage = models.FloatField(null=True, blank=True)
+    check_daily_uptime = models.IntegerField(null=True, blank=True)
+    check_hourly_uptime = models.IntegerField(null=True, blank=True)
 
 
 class Node(models.Model):
@@ -245,39 +248,13 @@ class Node(models.Model):
     def generate_alert(self) -> bool:
         """Generate an alert for this node, returns False if no alert is generated."""
         alert = Alert.from_node(self)
+        # No alert was generated for this node, nothing to do
         if not alert:
+            # Since there is no alert for this node, mark all previous alerts as resolved
+            unresolved_alerts = Alert.objects.filter(node=self, resolved=False)
+            unresolved_alerts.update(resolved=True)
             return False
-        current_status_level = alert.level if alert else -1
-        unresolved_alerts = Alert.objects.filter(node=self, resolved=False)
-        # Only generate a new alert if the current state is worse than
-        # that of an alert triggered last (or there are no previous alerts).
-        # Otherwise we would be generating new alerts for the same state,
-        # e.g. generating a WARNING alert for a node that has already got an
-        # unresolved WARNING.
-        if alert:
-            latest_alert = unresolved_alerts.order_by("-created").first()
-            # Case 1: There is no previous alert, so a new alert is generated
-            # regardless of what the status may have been before
-            if not latest_alert:
-                alert.save()
-            # Case 2: A new alert is generated because is is worse than the previous alerts
-            elif current_status_level > latest_alert.level:
-                alert.save()
-            # Case 3: The new report is as bad as previous ones, but may have
-            # changed its reasons, so we generate a new one anyway.
-            elif (
-                current_status_level == latest_alert.level
-                and alert.text != latest_alert.text
-            ):
-                alert.save()
-        # Mark all previous alerts that were worse than the current status as resolved.
-        # E.g. if a node generated a CRITICAL alert, but is now OK, that previous alert
-        # is assumed to have been resolved.
-        alerts_worse_than_current_status = unresolved_alerts.filter(
-            level__gt=current_status_level
-        )
-        alerts_worse_than_current_status.update(resolved=True)
-        return True
+        return alert.generate(self)
 
     def __str__(self):
         return f"Node {self.name} ({self.mac})"
@@ -290,8 +267,15 @@ class Alert(models.Model):
         """Alert level choices."""
 
         WARNING = 1, "Warning"
-        ERROR = 2, "ERROR"
+        ERROR = 2, "Error"
         CRITICAL = 3, "Critical"
+
+    class Type(models.IntegerChoices):
+        """Alert type choices."""
+
+        NODE_STATUS = 1, "Node Status"
+        UPTIME_LOW = 2, "Uptime Low"
+        DATA_USAGE_HIGH = 3, "Data Usage High"
 
     TITLE_OFFLINE = "Node is offline"
     TITLE_HEALTH_BAD = "Node's health is bad"
@@ -301,18 +285,24 @@ class Alert(models.Model):
     TEXT_HEALTH_BAD_OR_CRITICAL = "The following health checks failed: {}"
 
     level = models.SmallIntegerField(choices=Level.choices)
+    type = models.SmallIntegerField(choices=Type.choices)
     title = models.CharField(max_length=100)
     text = models.CharField(max_length=255)
     created = models.DateTimeField(auto_now_add=True)
     resolved = models.BooleanField(default=False)
-    node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name="alerts")
+    node = models.ForeignKey(
+        Node, on_delete=models.CASCADE, related_name="alerts", null=True, blank=True
+    )
 
     @classmethod
     def from_node(cls, node: Node) -> "Alert | None":
         """Generate an alert from a node's status."""
         if node.status == Node.Status.OFFLINE:
+            # Level is critical, it should override any health check warnings.
+            # Pretty useless to do health checks if the node is offline.
             return Alert(
-                level=Alert.Level.WARNING,
+                level=Alert.Level.CRITICAL,
+                type=Alert.Type.NODE_STATUS,
                 title=Alert.TITLE_OFFLINE,
                 text=Alert.TEXT_OFFLINE,
                 node=node,
@@ -324,6 +314,7 @@ class Alert(models.Model):
             if node.health_status == Node.HealthStatus.CRITICAL:
                 return cls(
                     level=Alert.Level.CRITICAL,
+                    type=Alert.Type.NODE_STATUS,
                     title=Alert.TITLE_HEALTH_CRITICAL,
                     text=Alert.TEXT_HEALTH_BAD_OR_CRITICAL.format(health_checks_failed),
                     node=node,
@@ -334,11 +325,57 @@ class Alert(models.Model):
             ):
                 return Alert(
                     level=Alert.Level.ERROR,
+                    type=Alert.Type.NODE_STATUS,
                     title=Alert.TITLE_HEALTH_BAD,
                     text=Alert.TEXT_HEALTH_BAD_OR_CRITICAL.format(health_checks_failed),
                     node=node,
                 )
         return None
+
+    def generate(self, node: Node | None = None) -> bool:
+        """Generate this alert if it is worse than previous alerts of the same type.
+
+        If it is less severe than previous ones, they will be marked as resolved.
+
+        NOTE: You should call this method instead of :meth:`save()` (or creating Alerts)
+        through the manager, because this way existing alerts may not be resolved.
+
+        :param node: Optional node this alert is associated with. If a node is specified,
+            alerts for other nodes will not be resolved.
+
+        :returns: True if the new alert was generated.
+        """
+        unresolved_alerts = Alert.objects.filter(type=self.type, resolved=False)
+        if node:
+            unresolved_alerts = unresolved_alerts.filter(node=node)
+        # Only generate a new alert if the current state is worse than
+        # that of an alert triggered last (or there are no previous alerts).
+        # Otherwise we would be generating new alerts for the same state,
+        # e.g. generating a WARNING alert for a node that has already got an
+        # unresolved WARNING.
+        latest_alert = unresolved_alerts.order_by("-created").first()
+        result = True
+        # Case 1: There is no previous alert, so a new alert is generated
+        # regardless of what the status may have been before
+        if not latest_alert:
+            self.save()
+        # Case 2: A new alert is generated because is is worse than the previous alerts
+        elif self.level > latest_alert.level:
+            self.save()
+        # Case 3: The new report is as bad as previous ones, but may have
+        # changed its reasons, so we generate a new one anyway.
+        elif self.level == latest_alert.level and self.text != latest_alert.text:
+            self.save()
+        else:
+            result = False
+        # Mark all previous alerts that were worse than the current status as resolved.
+        # E.g. if a node generated a CRITICAL alert, but is now OK, that previous alert
+        # is assumed to have been resolved.
+        alerts_worse_than_current_status = unresolved_alerts.filter(
+            level__gt=self.level
+        )
+        alerts_worse_than_current_status.update(resolved=True)
+        return result
 
     def __str__(self):
         return f"Alert for {self.node} level={self.level} [{self.created}]"

@@ -119,7 +119,8 @@ DEVICE_CHECKS = [
     {
         "title": "CPU Usage",
         "key": "cpu",
-        "func": lambda v: v < 80,
+        "setting": "check_cpu",
+        "func": lambda v, s: v < s,
         "feedback": {
             None: "No CPU usage recorded",
             False: "CPU usage is high",
@@ -129,7 +130,8 @@ DEVICE_CHECKS = [
     {
         "title": "Memory Usage",
         "key": "mem",
-        "func": lambda v: v < 70,
+        "setting": "check_mem",
+        "func": lambda v, s: v < s,
         "feedback": {
             None: "No memory usage recorded",
             False: "Memory usage is high",
@@ -139,7 +141,8 @@ DEVICE_CHECKS = [
     {
         "title": "Recently Contacted",
         "key": "last_ping",
-        "func": lambda v: timezone.now() - v < timedelta(minutes=20),
+        "setting": "check_ping",
+        "func": lambda v, s: timezone.now() - v < s,
         "feedback": {
             None: "Device has never been pinged",
             False: "Device has not been pinged recently",
@@ -149,7 +152,8 @@ DEVICE_CHECKS = [
     {
         "title": "Active",
         "key": "last_contact",
-        "func": lambda v: timezone.now() - v < timedelta(minutes=5),
+        "setting": "check_active",
+        "func": lambda v, s: timezone.now() - v < s,
         "feedback": {
             None: "Device has not contacted the server",
             False: "Device has not been contacted the server recently",
@@ -157,23 +161,36 @@ DEVICE_CHECKS = [
         },
     },
     {
-        "title": "Reachable",
-        "key": "reachable",
-        "func": bool,
-        "feedback": {
-            None: "Device has not been contacted yet",
-            False: "Device is unreachable",
-            True: "Device is reachable",
-        },
-    },
-    {
         "title": "RTT",
         "key": "rtt",
-        "func": lambda v: v < 40,
+        "setting": "check_rtt",
+        "func": lambda v, s: v < s,
         "feedback": {
             None: "No RTT data",
             False: "Took too long to return a response",
             True: "Response time is acceptable",
+        },
+    },
+    {
+        "title": "Upload Speed",
+        "key": "upload_speed",
+        "setting": "check_upload_speed",
+        "func": lambda v, s: v > s,
+        "feedback": {
+            None: "No upload speed data",
+            False: "Node is uploading data too slowly",
+            True: "Upload speed is acceptable",
+        },
+    },
+    {
+        "title": "Download Speed",
+        "key": "download_speed",
+        "setting": "check_download_speed",
+        "func": lambda v, s: v > s,
+        "feedback": {
+            None: "No download speed data",
+            False: "Node is downloading data too slowly",
+            True: "Download speed is acceptable",
         },
     },
 ]

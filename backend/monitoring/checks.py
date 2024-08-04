@@ -28,15 +28,27 @@ class CheckResults(list[CheckResult]):
         for check in settings.DEVICE_CHECKS:
             check_func = check.get("func", bool)
             key = check["key"]
+            setting_value = None
+            # Metric is an attribute of the node
             if hasattr(node, key):
                 value = getattr(node, key)
             else:
+                # Metric is a function on the node
                 get_func = getattr(node, f"get_{check['key']}")
                 value = get_func()
-            if value is not None:
-                passed = check_func(value)
+            if "setting" in check:
+                setting_value = getattr(node.mesh.settings, check["setting"])
+                # Pass the setting value to the check func as well as the metric
+                if value is not None and setting_value is not None:
+                    passed = check_func(value, setting_value)
+                else:
+                    passed = None
             else:
-                passed = None
+                # Just pass the metric, the check doesn't depend on settings
+                if value is not None:
+                    passed = check_func(value)
+                else:
+                    passed = None
             results.append(
                 CheckResult(
                     title=check["title"],
@@ -50,12 +62,17 @@ class CheckResults(list[CheckResult]):
     @property
     def num_failed(self) -> int:
         """Get the number of failed checks."""
-        return sum(1 for c in self if not c.passed)
+        return sum(1 for c in self if c.passed is False)
 
     @property
     def num_passed(self) -> int:
         """Get the number of passed checks."""
-        return sum(1 for c in self if c.passed)
+        return sum(1 for c in self if c.passed is True)
+
+    @property
+    def num_run(self) -> int:
+        """Get the number of check that were run (i.e. passed != None)."""
+        return sum(1 for c in self if c.passed is not None)
 
     def oll_korrect(self) -> bool:
         """Check whether all checks passed."""
@@ -63,11 +80,11 @@ class CheckResults(list[CheckResult]):
 
     def fewer_than_half_failed(self) -> bool:
         """Check whether fewer than half failed."""
-        return self.num_failed <= len(self) / 2
+        return self.num_failed <= self.num_run / 2
 
     def more_than_half_failed_but_not_all(self) -> bool:
         """Check whether more than half of the checks failed (but not all)."""
-        return self.num_failed > len(self) / 2 and self.num_passed != 0
+        return self.num_failed > self.num_run / 2 and self.num_passed != 0
 
     def all_failed(self) -> bool:
         """Check whether all of the checks failed."""
