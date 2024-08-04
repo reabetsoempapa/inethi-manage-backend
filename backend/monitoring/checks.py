@@ -41,20 +41,24 @@ class CheckResults(list[CheckResult]):
                 # Pass the setting value to the check func as well as the metric
                 if value is not None and setting_value is not None:
                     passed = check_func(value, setting_value)
+                    feedbackType = passed
                 else:
                     passed = None
+                    feedbackType = "NO_SETTING"
             else:
                 # Just pass the metric, the check doesn't depend on settings
                 if value is not None:
                     passed = check_func(value)
+                    feedbackType = passed
                 else:
                     passed = None
+                    feedbackType = "NO_DATA"
             results.append(
                 CheckResult(
                     title=check["title"],
                     key=key,
                     passed=passed,
-                    feedback=check["feedback"][passed],
+                    feedback=check["feedback"][feedbackType],
                 )
             )
         return results

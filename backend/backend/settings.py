@@ -122,7 +122,8 @@ DEVICE_CHECKS = [
         "setting": "check_cpu",
         "func": lambda v, s: v < s,
         "feedback": {
-            None: "No CPU usage recorded",
+            "NO_DATA": "No CPU usage recorded",
+            "NO_SETTING": "No CPU warning set",
             False: "CPU usage is high",
             True: "CPU usage falls in an acceptable range",
         },
@@ -133,7 +134,8 @@ DEVICE_CHECKS = [
         "setting": "check_mem",
         "func": lambda v, s: v < s,
         "feedback": {
-            None: "No memory usage recorded",
+            "NO_DATA": "No memory usage recorded",
+            "NO_SETTING": "No memory warning set",
             False: "Memory usage is high",
             True: "Memory usage falls in an acceptable range",
         },
@@ -144,7 +146,8 @@ DEVICE_CHECKS = [
         "setting": "check_ping",
         "func": lambda v, s: timezone.now() - v < s,
         "feedback": {
-            None: "Device has never been pinged",
+            "NO_DATA": "Device has never been pinged",
+            "NO_SETTING": "No contact time warning set",
             False: "Device has not been pinged recently",
             True: "Device has been pinged recently",
         },
@@ -155,7 +158,8 @@ DEVICE_CHECKS = [
         "setting": "check_active",
         "func": lambda v, s: timezone.now() - v < s,
         "feedback": {
-            None: "Device has not contacted the server",
+            "NO_DATA": "Device has not contacted the server",
+            "NO_SETTING": "No active time warning set",
             False: "Device has not been contacted the server recently",
             True: "Device is active",
         },
@@ -166,7 +170,8 @@ DEVICE_CHECKS = [
         "setting": "check_rtt",
         "func": lambda v, s: v < s,
         "feedback": {
-            None: "No RTT data",
+            "NO_DATA": "No RTT data",
+            "NO_SETTING": "No RTT warning set",
             False: "Took too long to return a response",
             True: "Response time is acceptable",
         },
@@ -177,7 +182,8 @@ DEVICE_CHECKS = [
         "setting": "check_upload_speed",
         "func": lambda v, s: v > s,
         "feedback": {
-            None: "No upload speed data",
+            "NO_DATA": "No upload speed data",
+            "NO_SETTING": "No upload warning set",
             False: "Node is uploading data too slowly",
             True: "Upload speed is acceptable",
         },
@@ -188,7 +194,8 @@ DEVICE_CHECKS = [
         "setting": "check_download_speed",
         "func": lambda v, s: v > s,
         "feedback": {
-            None: "No download speed data",
+            "NO_DATA": "No download speed data",
+            "NO_SETTING": "No download warning set",
             False: "Node is downloading data too slowly",
             True: "Download speed is acceptable",
         },
