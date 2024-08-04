@@ -21,18 +21,23 @@ services:
     depends_on:
       - db
     environment:
-      DJANGO_SECRET_KEY: "your_secret_key"
-      DJANGO_DEBUG: "True"
-      DB_NAME: "manage"
-      DB_USER: "inethi"
-      DB_PASSWORD: "iNethi2023#"
-      DB_HOST: "db"
-      DB_PORT: "3306"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
+      MYSQL_DATABASE: "manage"
+      MYSQL_USER: "inethi"
+      MYSQL_PASSWORD: "iNethi2023#"
+      MYSQL_HOST: "db"
+      MYSQL_PORT: "3306"
     volumes:
       - .:/app
     ports:
       - "8000:8000"
     command: ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000"]
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
 
 volumes:
   manage_db:

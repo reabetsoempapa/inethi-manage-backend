@@ -19,7 +19,6 @@ def decrypt_private_key(encrypted_key):
     fernet = Fernet(ENCRYPTION_KEY)
     decrypted_key = fernet.decrypt(encrypted_key.encode())
     return decrypted_key.decode()
-
 class Wallet(models.Model):
     address = models.CharField(max_length=50, unique=True)
     private_key = models.CharField(max_length=250)
