@@ -6,8 +6,31 @@ from radius.serializers import RadacctSerializer
 from . import models
 
 
+class MeshSettingsSerializer(ModelSerializer):
+    """Serializes MeshSettings objects from django model to JSON."""
+
+    class Meta:
+        """MeshSettingsSerializer metadata."""
+
+        model = models.MeshSettings
+        fields = "__all__"
+
+
+class WlanConfSerializer(ModelSerializer):
+    """Serializes WlanConf objects from django model to JSON."""
+
+    class Meta:
+        """WlanConfSerializer metadata."""
+
+        model = models.WlanConf
+        fields = "__all__"
+
+
 class MeshSerializer(ModelSerializer):
     """Serializes Mesh objects from django model to JSON."""
+
+    settings = MeshSettingsSerializer(required=False)
+    wlanconfs = WlanConfSerializer(many=True, required=False)
 
     class Meta:
         """MeshSerializer metadata."""
