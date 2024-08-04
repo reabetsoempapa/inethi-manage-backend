@@ -1,5 +1,5 @@
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from dynamic_fields.mixins import DynamicFieldsViewMixin
 
@@ -38,6 +38,15 @@ class MeshViewSet(ModelViewSet):
 
     queryset = models.Mesh.objects.all()
     serializer_class = serializers.MeshSerializer
+
+    @action(detail=True, methods=["put"])
+    def update_settings(self, request, pk=None):
+        """Put new settings."""
+        mesh = self.get_object()
+        serializer = serializers.MeshSettingsSerializer(mesh.settings, data=request.data, partial=False)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class ServiceViewSet(ModelViewSet):
