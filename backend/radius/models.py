@@ -6,6 +6,7 @@ definitions based on radiusdesk's modified version of freeradius.
 
 The original sql definitions are in /etc/freeradius/x.x/mods-config/sql/main/sqlite
 """
+
 from django.db import models
 
 
@@ -47,7 +48,7 @@ class Radacct(models.Model):
         db_table = "radacct"
 
     def __str__(self):
-        return f"Radacct: {self.acctuniqueid}"
+        return f"Radacct for {self.username}: Connect at {self.nasidentifier} from {self.acctstarttime}-{self.acctstoptime}"
 
 
 class Radcheck(models.Model):
@@ -79,7 +80,9 @@ class Radgroupcheck(models.Model):
         db_table = "radgroupcheck"
 
     def __str__(self):
-        return f"Radgroupcheck: {self.groupname}.{self.attribute} {self.op} {self.value}"
+        return (
+            f"Radgroupcheck: {self.groupname}.{self.attribute} {self.op} {self.value}"
+        )
 
 
 class Radgroupreply(models.Model):
@@ -97,7 +100,9 @@ class Radgroupreply(models.Model):
         db_table = "radgroupreply"
 
     def __str__(self):
-        return f"Radgroupcheck: {self.groupname}.{self.attribute} {self.op} {self.value}"
+        return (
+            f"Radgroupcheck: {self.groupname}.{self.attribute} {self.op} {self.value}"
+        )
 
 
 # This seems to be a model only used by radiusdesk?
@@ -168,14 +173,17 @@ class Radusergroup(models.Model):
         db_table = "radusergroup"
 
     def __str__(self):
-        return f"Radusergroup: {self.username}.{self.groupname} (priority={self.priority})"
+        return (
+            f"Radusergroup: {self.username}.{self.groupname} (priority={self.priority})"
+        )
 
 
 class Nas(models.Model):
     """A network Access Server (NAS).
-    
+
     See https://wiki.freeradius.org/glossary/NAS
     """
+
     nasname = models.CharField(max_length=128)
     shortname = models.CharField(max_length=32, blank=True, null=True)
     nasidentifier = models.CharField(max_length=64)
@@ -208,7 +216,7 @@ class Nas(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'nas'
+        db_table = "nas"
 
     def __str__(self):
         return f"NAS {self.nasname}: type={self.type}"
