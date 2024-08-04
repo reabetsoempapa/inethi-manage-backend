@@ -23,7 +23,7 @@ class WlanConf(models.Model):
 
 class Mesh(models.Model):
     """Mesh consisting of nodes.
-    
+
     Radiusdesk differentiates between a realm, a mesh and a site
     (I believe, where realm > mesh > site) but to keep things simple
     we keep nodes in a simple mesh group.
@@ -40,13 +40,28 @@ class Mesh(models.Model):
     lon = models.FloatField(default=0.0)
 
 
+class MeshSettings(models.Model):
+    """Settings for a group of nodes."""
+
+    mesh = models.OneToOneField(Mesh, on_delete=models.CASCADE, related_name="settings")
+
+    warning_daily_data_usage = models.FloatField(null=True, blank=True)
+    warning_hourly_data_usage = models.FloatField(null=True, blank=True)
+    warning_daily_speed = models.FloatField(null=True, blank=True)
+    warning_hourly_speed = models.FloatField(null=True, blank=True)
+    warning_daily_rtt = models.IntegerField(null=True, blank=True)
+    warning_hourly_rtt = models.IntegerField(null=True, blank=True)
+    warning_daily_uptime = models.IntegerField(null=True, blank=True)
+    warning_hourly_uptime = models.IntegerField(null=True, blank=True)
+
+
 class Node(models.Model):
     """Database table for network devices.
 
     Nodes can be both APs (Access Points) or Mesh Nodes. Radiusdesk has two
     separate tables for these two types, but we treat them as the same table
     (albeit with the `is_ap` and `nas_name` fields.)
-    
+
     I sometimes use the terms 'node' and 'device' interchangably, although 'node' is
     probably more accurate seeing that e.g. client devices are also network devices
     but they aren't network nodes that can route data.

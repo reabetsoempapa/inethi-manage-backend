@@ -4,7 +4,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.conf import settings
 
-from .models import Node
+from .models import Node, Mesh, MeshSettings
 
 
 def sync_prometheus_data_to_yml():
@@ -37,3 +37,10 @@ def update_prometheus_targets(sender, **kwargs):
 def remove_prometheus_targets(**kwargs):
     """Update prometheus targets when network devices are deleted."""
     sync_prometheus_data_to_yml()
+
+
+@receiver(post_save, sender=Mesh)
+def create_settings_if_not_defined(sender, created, instance, **kwargs):
+    """Update prometheus targets when network devices are added or modified."""
+    if created:
+        MeshSettings.objects.create(mesh=instance, **settings.MESH_SETTINGS_DEFAULTS)

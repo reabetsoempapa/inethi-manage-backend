@@ -112,6 +112,9 @@ UNIFI_DB_PORT = "27117"
 UNIFI_URL = os.environ["UNIFI_URL"]
 UNIFI_INFORM_URL = f"{UNIFI_URL}/inform"
 
+# Nothing at the moment
+MESH_SETTINGS_DEFAULTS = {}
+
 DEVICE_CHECKS = [
     {
         "title": "CPU Usage",
