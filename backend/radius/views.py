@@ -7,5 +7,5 @@ from . import models
 class RadacctViewSet(ModelViewSet):
     """View Radacct items."""
 
-    queryset = models.Radacct.objects.all()
+    queryset = models.Radacct.objects.all().order_by("username")
     serializer_class = serializers.RadacctSerializer
