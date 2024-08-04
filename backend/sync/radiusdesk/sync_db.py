@@ -221,6 +221,5 @@ def run():
             sync_node_rates_metrics(cursor)
             sync_node_resources_metrics(cursor)
             sync_node_failures_metrics(cursor)
-            sync_client_sessions(cursor)
             elapsed_time = time.time() - start_time
             print(f"Synced with radiusdesk in {elapsed_time:.2f}s")
