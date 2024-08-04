@@ -49,8 +49,6 @@ class NodeSerializer(DynamicFieldsModelSerializer):
     num_unresolved_alerts = SerializerMethodField()
     upload_speed = SerializerMethodField()
     download_speed = SerializerMethodField()
-    mesh_lat = SerializerMethodField()
-    mesh_lon = SerializerMethodField()
     client_sessions = SerializerMethodField()
 
     def get_checks(self, node: models.Node) -> list[dict]:
@@ -74,18 +72,10 @@ class NodeSerializer(DynamicFieldsModelSerializer):
         """Get node's download speed."""
         return node.get_download_speed()
 
-    def get_mesh_lat(self, node: models.Node) -> float:
-        """Get this node's meshe's latitude."""
-        return node.mesh.lat
-
-    def get_mesh_lon(self, node: models.Node) -> float:
-        """Get this node's meshe's longitude."""
-        return node.mesh.lon
-
     def get_neighbours(self, node: models.Node) -> list[str]:
         """Get neighbour's MAC addresses."""
         # This EUI field serialization thing is getting super annoying...
-        # This should just be a PrimaryKeyRelatedField, 
+        # This should just be a PrimaryKeyRelatedField,
         return [str(n.mac) for n in node.neighbours.all()]
 
     def get_client_sessions(self, node: models.Node) -> list[dict]:
