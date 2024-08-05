@@ -3,6 +3,10 @@ from cryptography.fernet import Fernet
 import os
 from dotenv import load_dotenv
 from django.utils import timezone
+import qrcode  # Import qrcode module
+from io import BytesIO
+
+
 
 load_dotenv()
 
@@ -19,13 +23,31 @@ def decrypt_private_key(encrypted_key):
     fernet = Fernet(ENCRYPTION_KEY)
     decrypted_key = fernet.decrypt(encrypted_key.encode())
     return decrypted_key.decode()
+
 class Wallet(models.Model):
     address = models.CharField(max_length=50, unique=True)
     private_key = models.CharField(max_length=250)
     created_at = models.DateTimeField(default=timezone.now)
     name = models.CharField(max_length=50, default='default_name')
+    qr_code = models.BinaryField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
         if not self.pk:  # Only encrypt if it's a new object
             self.private_key = encrypt_private_key(self.private_key)
+            self.qr_code = self.generate_qr_code(self.address)
         super().save(*args, **kwargs)
+
+    @staticmethod
+    def generate_qr_code(data):
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(data)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        return buffer.getvalue()

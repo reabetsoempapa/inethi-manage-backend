@@ -14,6 +14,8 @@ COPY requirements.txt .
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 RUN pip install gunicorn
+RUN pip install qrcode[pil]
+
 
 # Copy the entrypoint script and give it the necessary permissions
 COPY entrypoint.sh /app/
