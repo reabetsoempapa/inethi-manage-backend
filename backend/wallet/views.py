@@ -11,6 +11,9 @@ from django.conf import settings
 from io import BytesIO
 from django.core.files.base import ContentFile, File
 import qrcode  # Import qrcode module
+from PIL import Image  # Import Image class from PIL
+from django.http import HttpResponse  # Import HttpResponse from django.http
+
 
 from django.shortcuts import render
 from jwt.exceptions import InvalidAlgorithmError
@@ -280,13 +283,18 @@ class CreateWallet(APIView):
             logger.error(f"Error creating wallet: {e}")
             return Response({"error": f"{e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-def get_wallet_qr_code(request, wallet_id):
-    try:
-        wallet = Wallet.objects.get(id=wallet_id)
-        qr_code_data = wallet.qr_code
-        if qr_code_data:
-            response = HttpResponse(qr_code_data, content_type="image/png")
-            return response
-        return HttpResponse("QR code not available", status=404)
-    except Wallet.DoesNotExist:
-        return HttpResponse("Wallet not found", status=404)
+class GetWalletQRCode(APIView):
+    def get(self, request, wallet_id):
+        try:
+            wallet = Wallet.objects.get(address=wallet_id)
+            qr_code_data = wallet.qr_code
+            if qr_code_data:
+                image = Image.open(BytesIO(qr_code_data))
+                response = HttpResponse(content_type="image/png")
+                image.save(response, "PNG")
+                return response
+            return Response({"error": "QR code not available"}, status=status.HTTP_404_NOT_FOUND)
+        except Wallet.DoesNotExist:
+            return Response({"error": "Wallet not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

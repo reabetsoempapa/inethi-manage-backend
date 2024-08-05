@@ -20,7 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from ap_monitor.views import ListDevices, DeleteDevice, UpdateDevices, AddDevice
 from service_monitor.views import ListServices, AddService, DeleteService, EditService, ListServicesByType
-from wallet.views import CreateWallet, SendToken, CheckBalance, CheckWallet, CheckDetails, get_wallet_qr_code
+from wallet.views import CreateWallet, SendToken, CheckBalance, CheckWallet, CheckDetails, GetWalletQRCode
 from users.views import UserKeycloakAttributes, RegisterKeycloakUser
 
 urlpatterns = [
@@ -45,7 +45,7 @@ urlpatterns = [
     path('wallet/balance/', CheckBalance.as_view()),
     path('wallet/ownership/', CheckWallet.as_view()),
     path('wallet/details/', CheckDetails.as_view()),
-    path('wallet/<int:wallet_id>/qr_code/', get_wallet_qr_code, name='wallet_qr_code'),
+    path('wallet/<str:wallet_id>/qr_code/', GetWalletQRCode.as_view(), name='wallet_qr_code'),
 
     # user
     path('user/keycloak/attributes/', UserKeycloakAttributes.as_view()),
