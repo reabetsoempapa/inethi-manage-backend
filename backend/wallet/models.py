@@ -5,15 +5,10 @@ from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from cryptography.fernet import Fernet
-from dotenv import load_dotenv
 
 from web3 import Web3
 from web3.types import TxReceipt
 
-load_dotenv()
-
-ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
-CONTRACT_ADDRESS = os.getenv("CONTRACT_ADDRESS")
 
 contract_api_fp = os.path.join(settings.BASE_DIR, "wallet", "contract_abi.json")
 with open(contract_api_fp, "r", encoding="utf-8") as abi_file:
@@ -22,16 +17,14 @@ with open(contract_api_fp, "r", encoding="utf-8") as abi_file:
 
 def encrypt_private_key(private_key: str) -> str:
     """Fernet encrypt a private key."""
-    if not ENCRYPTION_KEY:
-        raise ValueError("ENCRYPTION_KEY is not set in environment variables.")
-    fernet = Fernet(ENCRYPTION_KEY)
+    fernet = Fernet(settings.WALLET_ENCRYPTION_KEY)
     encrypted_key = fernet.encrypt(private_key.encode())
     return encrypted_key.decode()
 
 
 def decrypt_private_key(encrypted_key: str) -> str:
     """Fernet decrypt a private key."""
-    fernet = Fernet(ENCRYPTION_KEY)
+    fernet = Fernet(settings.WALLET_ENCRYPTION_KEY)
     decrypted_key = fernet.decrypt(encrypted_key.encode())
     return decrypted_key.decode()
 
@@ -49,7 +42,7 @@ class Wallet(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
 
     w3 = Web3(Web3.HTTPProvider("https://forno.celo.org"))
-    contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
+    contract = w3.eth.contract(address=settings.WALLET_CONTRACT_ADDRESS, abi=CONTRACT_ABI)
 
     def estimate_gas_for_transfer(self, token_amount: int, recipient: "Wallet") -> int:
         """Estimate the amount of GAS a transfer will require."""
