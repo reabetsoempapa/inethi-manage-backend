@@ -15,21 +15,29 @@ import os
 from pathlib import Path
 
 from django.utils import timezone
-from dotenv import load_dotenv
+import environ
 
-load_dotenv()
+env = environ.Env(
+    DEBUG=(bool, False),
+    SYNC_RD=(bool, False),
+    SYNC_UNIFI=(bool, False),
+    REDIS_HOST=(str, "localhost"),
+    ALLOWED_HOSTS=(list, [])
+)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ["SECRET_KEY"]
+SECRET_KEY = env("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ["DEBUG"] == "True"
+DEBUG = env("DEBUG")
 
 ALLOWED_HOSTS = [
     "127.0.0.1",
@@ -38,7 +46,7 @@ ALLOWED_HOSTS = [
     "manage.inethilocal.net",
     "manage-backend.inethilocal.net",
     "manage-backend.inethicloud.net",
-] + os.environ.get("ALLOWED_HOSTS", "").split(",")
+] + env("ALLOWED_HOSTS")
 
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
@@ -74,43 +82,36 @@ INSTALLED_APPS = [
     "payments",
     "wallet",
     "sync",
-    "radius"
+    "radius",
 ]
 # Keycloak config
 AUTHENTICATION_BACKENDS = ["django_keycloak.backends.KeycloakAuthorizationCodeBackend"]
 LOGIN_URL = "keycloak_login"
 KEYCLOAK_CLIENTS = {
     "DEFAULT": {
-        "URL": os.environ["KEYCLOAK_URL"],
-        "REALM": os.environ["KEYCLOAK_REALM"],
-        "CLIENT_ID": os.environ["KEYCLOAK_CLIENT_ID"],
-        "CLIENT_SECRET": os.environ["KEYCLOAK_CLIENT_SECRET"],
+        "URL": env("KEYCLOAK_URL"),
+        "REALM": env("KEYCLOAK_REALM"),
+        "CLIENT_ID": env("KEYCLOAK_CLIENT_ID"),
+        "CLIENT_SECRET": env("KEYCLOAK_CLIENT_SECRET"),
     },
     "API": {
-        "URL": os.environ["KEYCLOAK_URL"],
-        "REALM": os.environ["KEYCLOAK_REALM"],
-        "CLIENT_ID": os.environ["DRF_KEYCLOAK_CLIENT_ID"],
+        "URL": env("KEYCLOAK_URL"),
+        "REALM": env("KEYCLOAK_REALM"),
+        "CLIENT_ID": env("DRF_KEYCLOAK_CLIENT_ID"),
         "CLIENT_SECRET": None,  # DRF client is public
     },
 }
 # Radiusdesk config
-RD_DB_NAME = "rd"
-RD_DB_USER = "rd"
-RD_DB_PASSWORD = "rd"
-RD_DB_HOST = "127.0.0.1"
-RD_DB_PORT = "3306"
-RD_URL = os.environ["RADIUSDESK_URL"]
-RD_CONFIG_URL = f"{RD_URL}/cake4/rd_cake/nodes/get-config-for-node.json"
-RD_REPORT_URL = f"{RD_URL}/cake4/rd_cake/node-reports/submit_report.json"
-RD_ACTIONS_URL = f"{RD_URL}/cake4/rd_cake/node-actions/get_actions_for.json"
+SYNC_RD_ENABLED = env("SYNC_RD")
+RADIUSDESK_DB = env.db_url("RADIUSDESK_DB_URL")
+RD_URL = env("RADIUSDESK_URL")
 # UNIFI config
-UNIFI_DB_NAME = "ace"
+SYNC_UNIFI_ENABLED = env("SYNC_UNIFI")
 UNIFI_DB_USER = ""
 UNIFI_DB_PASSWORD = ""
 UNIFI_DB_HOST = "localhost"
 UNIFI_DB_PORT = "27117"
-UNIFI_URL = os.environ["UNIFI_URL"]
-UNIFI_INFORM_URL = f"{UNIFI_URL}/inform"
+UNIFI_URL = env("UNIFI_URL")
 
 # Nothing at the moment
 MESH_SETTINGS_DEFAULTS = {}
@@ -247,43 +248,14 @@ WSGI_APPLICATION = "backend.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-if DEBUG:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-            # 'ENGINE': 'django.db.backends.mysql',
-            # 'NAME': 'manage',
-            # 'USER': 'inethi',
-            # 'PASSWORD': 'iNethi2023#',
-            # 'HOST': 'inethi-manage-mysql',
-            # 'PORT': '3306',
-        },
-        "metrics_db": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "metrics.sqlite3",
-        },
-        "radius_db": {
-            "ENGINE": "django.db.backends.mysql",
-            "NAME": RD_DB_NAME,
-            "USER": RD_DB_USER,
-            "PASSWORD": RD_DB_PASSWORD,
-            "HOST": RD_DB_HOST,
-            "PORT": RD_DB_PORT
-        }
-    }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.mysql",
-            "NAME": "manage",
-            "USER": "inethi",
-            "PASSWORD": "iNethi2023#",
-            #'HOST': '127.0.0.1', # this works when running python locally
-            "HOST": "inethi-manage-mysql",
-            "PORT": "3306",
-        }
-    }
+DATABASES = {
+    "default": env.db("DATABASE_URL"),
+    "metrics_db": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "metrics.sqlite3",
+    },
+    "radius_db": RADIUSDESK_DB,
+}
 
 DATABASE_ROUTERS = ["backend.routers.MetricsRouter"]
 
@@ -326,7 +298,7 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Celery config
-REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
+REDIS_HOST = env("REDIS_HOST")
 CELERY_BROKER_URL = f"redis://{REDIS_HOST}:6379/0"
 CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:6379/0"
 # Celery TIME_ZONE should be equal to django TIME_ZONE

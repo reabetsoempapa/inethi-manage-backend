@@ -207,11 +207,11 @@ def sync_node_resources_metrics(cursor):
 
 def run():
     with connect(
-        host=settings.RD_DB_HOST,
-        user=settings.RD_DB_USER,
-        password=settings.RD_DB_PASSWORD,
-        database=settings.RD_DB_NAME,
-        port=settings.RD_DB_PORT,
+        host=settings.RADIUSDESK_DB["HOST"],
+        user=settings.RADIUSDESK_DB["USER"],
+        password=settings.RADIUSDESK_DB["PASSWORD"],
+        database=settings.RADIUSDESK_DB["NAME"],
+        port=settings.RADIUSDESK_DB["PORT"],
     ) as connection:
         with connection.cursor() as cursor:
             start_time = time.time()
