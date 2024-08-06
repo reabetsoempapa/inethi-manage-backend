@@ -1,7 +1,6 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
-from dynamic_fields.mixins import DynamicFieldsViewMixin
 
 from .models import Node
 from . import models
@@ -19,7 +18,7 @@ def overview(request):
     })
 
 
-class NodeViewSet(DynamicFieldsViewMixin, ModelViewSet):
+class NodeViewSet(ModelViewSet):
     """View/Edit/Add/Delete Node items."""
 
     queryset = models.Node.objects.all()

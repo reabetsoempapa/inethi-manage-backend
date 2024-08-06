@@ -1,5 +1,5 @@
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
-from dynamic_fields.serializers import DynamicFieldsModelSerializer
+from drf_dynamic_fields import DynamicFieldsMixin
 
 from radius.models import Radacct
 from radius.serializers import RadacctSerializer
@@ -57,7 +57,7 @@ class AlertSerializer(ModelSerializer):
         return str(alert.node.mac)
 
 
-class NodeSerializer(DynamicFieldsModelSerializer):
+class NodeSerializer(DynamicFieldsMixin, ModelSerializer):
     """Serializes Node objects from django model to JSON."""
 
     class Meta:
