@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "manage-backend"
+version = "0.0.1"
+authors = [
+  { name="Keegan White", email="keeganthomaswhite@gmail.com" },
+  { name="Erik Polzin", email="eriktpol@gmail.com" },
+]
+description = "Mesh network management backend."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    'celery>=5.4.0',
+    'channels>=4.0.0',
+    'channels-redis>=4.0.0',
+    'daphne>=4.0.0',
+    'Django>=5.0.0',
+    'django-cors-headers>=4.0.0',
+    'django-environ>=0.11.2',
+    'django-keycloak-admin>=0.0.4',
+    'django-macaddress>=1.8.0',
+    'django-revproxy>=0.12.0',
+    'djangorestframework>=3.0.0',
+    'drf-dynamic-fields>=0.4.0',
+    'gunicorn>=22.0.0',
+    'mysql-connector-python>=9.0.0',
+    'pymongo>=4.7.0',
+    'pytz>=2024.1',
+    'pyyaml>=6.0.0',
+    'typing_extensions>=4.12.0',
+    'web3>=6.19.0',
+    'whitenoise>=6.7.0'
+]
+
+[project.optional-dependencies]
+build = ["build"]
+dev = ["pip-tools", "pytest", "pytest-django", "psycopg2", "mysqlclient"]
+
+[project.urls]
+Homepage = "https://github.com/iNethi/manage-backend"
+Issues = "https://github.com/iNethi/manage-backend/issues"
+
+[tool.setuptools.packages]
+find = {}
