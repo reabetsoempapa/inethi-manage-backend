@@ -2,6 +2,7 @@ from asgiref.sync import async_to_sync
 from celery import shared_task
 from celery.utils.log import get_task_logger
 import channels.layers
+from django.conf import settings
 
 from sync.radiusdesk.sync_db import run as syncrd
 from sync.unifi.sync_db import run as syncunifi
@@ -14,11 +15,17 @@ logger = get_task_logger(__name__)
 @shared_task
 def sync_dbs() -> None:
     """Sync with radiusdesk and unifi, then update devices."""
-    logger.info("Syncing with radiusdesk")
-    syncrd()
-    logger.info("Syncing with unifi")
-    syncunifi()
-    sync_all_devices()
+    synced = False
+    if settings.SYNC_RD_ENABLED:
+        logger.info("Syncing with radiusdesk")
+        syncrd()
+        synced = True
+    if settings.SYNC_UNIFI_ENABLED:
+        logger.info("Syncing with unifi")
+        syncunifi()
+        synced = True
+    if synced:
+        sync_all_devices()
 
 
 @shared_task
