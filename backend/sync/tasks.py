@@ -46,7 +46,6 @@ def sync_device(device_mac: str) -> None:
         logger.error("No device with MAC %s", device_mac)
         return
     serializer = NodeSerializer(device)
-    logger.info("%s %s", device.last_contact, serializer.data["last_contact"])
     channel_layer = channels.layers.get_channel_layer()
     async_to_sync(channel_layer.group_send)('updates_group', {
         "type": "update.device",
