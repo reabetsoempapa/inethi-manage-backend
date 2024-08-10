@@ -2,8 +2,9 @@ from django.db import models
 from django.utils.functional import cached_property
 from django.contrib.auth.models import User
 from django.db.models import Sum
+from phonenumber_field.modelfields import PhoneNumberField
 
-from monitoring.models import Alert
+from monitoring.models import Alert, Mesh
 from radius.models import Radacct
 
 
@@ -14,7 +15,9 @@ class UserProfile(models.Model):
     min_alert_level = models.SmallIntegerField(
         choices=Alert.Level.choices, default=Alert.Level.WARNING
     )
+    alert_meshes = models.ManyToManyField(Mesh, related_name="alerted_users")
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    phone_number = PhoneNumberField(blank=True)
 
     @cached_property
     def sessions(self):

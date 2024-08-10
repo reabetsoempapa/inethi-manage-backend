@@ -1,10 +1,12 @@
 from django.utils.functional import cached_property
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 from macaddress.fields import MACAddressField
 
 from metrics.models import ResourcesMetric, RTTMetric, DataRateMetric
 from .checks import CheckResults
+from .tasks import send_alert_message
 
 
 class WlanConf(models.Model):
@@ -264,7 +266,7 @@ class Node(models.Model):
             unresolved_alerts = Alert.objects.filter(node=self, resolved=False)
             unresolved_alerts.update(resolved=True)
             return False
-        return alert.generate(self)
+        return alert.generate(node=self, mesh=self.mesh)
 
     def __str__(self):
         return f"Node {self.name} ({self.mac})"
@@ -299,6 +301,7 @@ class Alert(models.Model):
     title = models.CharField(max_length=100)
     text = models.CharField(max_length=255)
     created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
     resolved = models.BooleanField(default=False)
     node = models.ForeignKey(
         Node, on_delete=models.CASCADE, related_name="alerts", null=True, blank=True
@@ -342,7 +345,7 @@ class Alert(models.Model):
                 )
         return None
 
-    def generate(self, node: Node | None = None) -> bool:
+    def generate(self, node: Node | None = None, mesh: Mesh | None = None) -> bool:
         """Generate this alert if it is worse than previous alerts of the same type.
 
         If it is less severe than previous ones, they will be marked as resolved.
@@ -369,13 +372,19 @@ class Alert(models.Model):
         # regardless of what the status may have been before
         if not latest_alert:
             self.save()
+            if mesh:
+                send_alert_message("New", self.pk, mesh.name)
         # Case 2: A new alert is generated because is is worse than the previous alerts
         elif self.level > latest_alert.level:
-            self.save()
+            latest_alert.upgrade(self)
+            if mesh:
+                send_alert_message("Upgrade", latest_alert.pk, mesh.name)
         # Case 3: The new report is as bad as previous ones, but may have
         # changed its reasons, so we generate a new one anyway.
-        elif self.level == latest_alert.level and self.text != latest_alert.text:
-            self.save()
+        elif self.level == latest_alert.level and self.title != latest_alert.title:
+            latest_alert.rename(self)
+            if mesh:
+                send_alert_message("Rename", latest_alert.pk, mesh.name)
         else:
             result = False
         # Mark all previous alerts that were worse than the current status as resolved.
@@ -386,6 +395,22 @@ class Alert(models.Model):
         )
         alerts_worse_than_current_status.update(resolved=True)
         return result
+
+    def upgrade(self, alert: "Alert") -> None:
+        """Upgrade to a more serious alert"""
+        self.level = alert.level
+        self.title = alert.title
+        self.text = f"{alert.text}\n{self.modified} {self.text}"
+        self.modified = timezone.now()
+        self.resolved = False  # Just sanity-check this
+        self.save()
+
+    def rename(self, alert: "Alert") -> None:
+        """Rename to another alert."""
+        self.text = f"Renamed {self.title} -> {alert.title}\n{self.modified} {self.text}"
+        self.title = alert.title
+        self.modified = timezone.now()
+        self.save()
 
     def __str__(self):
         return f"Alert for {self.node} level={self.level} [{self.created}]"

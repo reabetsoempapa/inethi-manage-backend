@@ -38,6 +38,10 @@ class MeshViewSet(ModelViewSet):
     queryset = models.Mesh.objects.all()
     serializer_class = serializers.MeshSerializer
 
+    def get_queryset(self):
+        """Only list meshes that this user maintains."""
+        return super().get_queryset().filter(maintainers=self.request.user)
+
     @action(detail=True, methods=["put"])
     def update_settings(self, request, pk=None):
         """Put new settings."""

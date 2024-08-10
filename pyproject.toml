@@ -28,6 +28,7 @@ dependencies = [
     'django-keycloak-admin>=0.0.4',
     'django-macaddress>=1.8.0',
     'django-revproxy>=0.12.0',
+    'django-phonenumber-field[phonenumberslite]',
     'djangorestframework>=3.0.0',
     'drf-dynamic-fields>=0.4.0',
     'gunicorn>=22.0.0',
@@ -35,6 +36,7 @@ dependencies = [
     'pymongo>=4.7.0',
     'pytz>=2024.1',
     'pyyaml>=6.0.0',
+    'twilio>=9.2.3',
     'typing_extensions>=4.12.0',
     'web3>=6.19.0',
     'whitenoise>=6.7.0'

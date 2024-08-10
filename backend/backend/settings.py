@@ -22,7 +22,10 @@ env = environ.Env(
     SYNC_RD=(bool, False),
     SYNC_UNIFI=(bool, False),
     REDIS_HOST=(str, "localhost"),
-    ALLOWED_HOSTS=(list, [])
+    ALLOWED_HOSTS=(list, []),
+    TWILIO_ENABLED=(bool, False),
+    TWILIO_ACCOUNT_SID=(str, None),
+    TWILIO_AUTH_TOKEN=(str, None),
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -66,6 +69,7 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG  # For development
 CORS_ALLOW_CREDENTIALS = True
 # Application definition
 INSTALLED_APPS = [
+    # Django apps
     "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -73,10 +77,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # Third-party apps
     "rest_framework",
     "corsheaders",
     "django_keycloak",
     "revproxy",
+    "phonenumber_field",
+    # Local apps
     "accounts",
     "monitoring",
     "metrics",
@@ -119,6 +126,10 @@ MESH_SETTINGS_DEFAULTS = {}
 
 WALLET_ENCRYPTION_KEY = env("WALLET_ENCRYPTION_KEY")
 WALLET_CONTRACT_ADDRESS = env("WALLET_CONTRACT_ADDRESS")
+
+TWILIO_ENABLED = env("TWILIO_ENABLED")
+TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN")
 
 DEVICE_CHECKS = [
     {
