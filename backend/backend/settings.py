@@ -26,6 +26,7 @@ env = environ.Env(
     TWILIO_ENABLED=(bool, False),
     TWILIO_ACCOUNT_SID=(str, None),
     TWILIO_AUTH_TOKEN=(str, None),
+    TWILIO_PHONE_NUM=(str, None),
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -130,6 +131,7 @@ WALLET_CONTRACT_ADDRESS = env("WALLET_CONTRACT_ADDRESS")
 TWILIO_ENABLED = env("TWILIO_ENABLED")
 TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN")
+TWILIO_PHONE_NUM = env("TWILIO_PHONE_NUM")
 
 DEVICE_CHECKS = [
     {

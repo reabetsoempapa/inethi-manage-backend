@@ -6,7 +6,6 @@ from macaddress.fields import MACAddressField
 
 from metrics.models import ResourcesMetric, RTTMetric, DataRateMetric
 from .checks import CheckResults
-from .tasks import send_alert_message
 
 
 class WlanConf(models.Model):
@@ -263,10 +262,13 @@ class Node(models.Model):
         # No alert was generated for this node, nothing to do
         if not alert:
             # Since there is no alert for this node, mark all previous alerts as resolved
-            unresolved_alerts = Alert.objects.filter(node=self, resolved=False)
-            unresolved_alerts.update(resolved=True)
+            unresolved_alerts = Alert.objects.filter(node=self).exclude(
+                status=Alert.Status.RESOLVED
+            )
+            for a in unresolved_alerts:
+                a.resolve()
             return False
-        return alert.generate(node=self, mesh=self.mesh)
+        return alert.generate(node=self)
 
     def __str__(self):
         return f"Node {self.name} ({self.mac})"
@@ -289,6 +291,14 @@ class Alert(models.Model):
         UPTIME_LOW = 2, "Uptime Low"
         DATA_USAGE_HIGH = 3, "Data Usage High"
 
+    class Status(models.IntegerChoices):
+        """Alert type choices."""
+
+        NEW = 1, "New"
+        UPGRADED = 2, "Upgraded"
+        RENAME = 3, "Rename"
+        RESOLVED = 4, "Resolved"
+
     TITLE_OFFLINE = "Node is offline"
     TITLE_HEALTH_BAD = "Node's health is bad"
     TITLE_HEALTH_CRITICAL = "Node's health is critical"
@@ -297,19 +307,23 @@ class Alert(models.Model):
     TEXT_HEALTH_BAD_OR_CRITICAL = "The following health checks failed: {}"
 
     level = models.SmallIntegerField(choices=Level.choices)
+    status = models.SmallIntegerField(choices=Status.choices, default=Status.NEW)
     type = models.SmallIntegerField(choices=Type.choices)
     title = models.CharField(max_length=100)
     text = models.CharField(max_length=255)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    resolved = models.BooleanField(default=False)
     node = models.ForeignKey(
         Node, on_delete=models.CASCADE, related_name="alerts", null=True, blank=True
+    )
+    mesh = models.ForeignKey(
+        Mesh, on_delete=models.CASCADE, related_name="alerts", null=True, blank=True
     )
 
     @classmethod
     def from_node(cls, node: Node) -> "Alert | None":
         """Generate an alert from a node's status."""
+        timestamp = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
         if node.status == Node.Status.OFFLINE:
             # Level is critical, it should override any health check warnings.
             # Pretty useless to do health checks if the node is offline.
@@ -317,8 +331,9 @@ class Alert(models.Model):
                 level=Alert.Level.CRITICAL,
                 type=Alert.Type.NODE_STATUS,
                 title=Alert.TITLE_OFFLINE,
-                text=Alert.TEXT_OFFLINE,
+                text=f"_{timestamp}_ {Alert.TEXT_OFFLINE}",
                 node=node,
+                mesh=node.mesh,
             )
         if node.health_status != Node.HealthStatus.OK:
             health_checks_failed = ", ".join(
@@ -329,8 +344,9 @@ class Alert(models.Model):
                     level=Alert.Level.CRITICAL,
                     type=Alert.Type.NODE_STATUS,
                     title=Alert.TITLE_HEALTH_CRITICAL,
-                    text=Alert.TEXT_HEALTH_BAD_OR_CRITICAL.format(health_checks_failed),
+                    text=f"_{timestamp}_ {Alert.TEXT_HEALTH_BAD_OR_CRITICAL.format(health_checks_failed)}",
                     node=node,
+                    mesh=node.mesh,
                 )
             if node.health_status in (
                 Node.HealthStatus.WARNING,
@@ -340,12 +356,18 @@ class Alert(models.Model):
                     level=Alert.Level.ERROR,
                     type=Alert.Type.NODE_STATUS,
                     title=Alert.TITLE_HEALTH_BAD,
-                    text=Alert.TEXT_HEALTH_BAD_OR_CRITICAL.format(health_checks_failed),
+                    text=f"_{timestamp}_ {Alert.TEXT_HEALTH_BAD_OR_CRITICAL.format(health_checks_failed)}",
                     node=node,
+                    mesh=node.mesh,
                 )
         return None
 
-    def generate(self, node: Node | None = None, mesh: Mesh | None = None) -> bool:
+    def add_event(self, text: str) -> str:
+        """Add a timestamped event to the alert text."""
+        timestamp = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+        return f"_{timestamp}_ {text}\n{self.text}"
+
+    def generate(self, node: Node | None = None) -> bool:
         """Generate this alert if it is worse than previous alerts of the same type.
 
         If it is less severe than previous ones, they will be marked as resolved.
@@ -358,7 +380,9 @@ class Alert(models.Model):
 
         :returns: True if the new alert was generated.
         """
-        unresolved_alerts = Alert.objects.filter(type=self.type, resolved=False)
+        unresolved_alerts = Alert.objects.filter(type=self.type).exclude(
+            status=Alert.Status.RESOLVED
+        )
         if node:
             unresolved_alerts = unresolved_alerts.filter(node=node)
         # Only generate a new alert if the current state is worse than
@@ -372,19 +396,13 @@ class Alert(models.Model):
         # regardless of what the status may have been before
         if not latest_alert:
             self.save()
-            if mesh:
-                send_alert_message("New", self.pk, mesh.name)
         # Case 2: A new alert is generated because is is worse than the previous alerts
         elif self.level > latest_alert.level:
             latest_alert.upgrade(self)
-            if mesh:
-                send_alert_message("Upgrade", latest_alert.pk, mesh.name)
         # Case 3: The new report is as bad as previous ones, but may have
         # changed its reasons, so we generate a new one anyway.
         elif self.level == latest_alert.level and self.title != latest_alert.title:
             latest_alert.rename(self)
-            if mesh:
-                send_alert_message("Rename", latest_alert.pk, mesh.name)
         else:
             result = False
         # Mark all previous alerts that were worse than the current status as resolved.
@@ -393,24 +411,45 @@ class Alert(models.Model):
         alerts_worse_than_current_status = unresolved_alerts.filter(
             level__gt=self.level
         )
-        alerts_worse_than_current_status.update(resolved=True)
+        for alert in alerts_worse_than_current_status:
+            alert.resolve()
         return result
 
-    def upgrade(self, alert: "Alert") -> None:
+    def upgrade(self, alert: "Alert", save: bool = True) -> None:
         """Upgrade to a more serious alert"""
         self.level = alert.level
         self.title = alert.title
-        self.text = f"{alert.text}\n{self.modified} {self.text}"
+        self.text = self.add_event(alert.text)
         self.modified = timezone.now()
-        self.resolved = False  # Just sanity-check this
-        self.save()
+        self.status = Alert.Status.UPGRADED
+        if save:
+            self.save(update_fields=["text", "level", "title", "modified", "status"])
 
-    def rename(self, alert: "Alert") -> None:
+    def rename(self, alert: "Alert", save: bool = True) -> None:
         """Rename to another alert."""
-        self.text = f"Renamed {self.title} -> {alert.title}\n{self.modified} {self.text}"
         self.title = alert.title
         self.modified = timezone.now()
-        self.save()
+        self.text = self.add_event(f"Renamed {self.title} -> {alert.title}")
+        self.status = Alert.Status.RENAME
+        if save:
+            self.save(update_fields=["text", "title", "modified", "status"])
+
+    def resolve(self, save: bool = True) -> None:
+        """Mark this alert as resolved."""
+        self.status = Alert.Status.RESOLVED
+        self.modified = timezone.now()
+        self.text = self.add_event("Resolved this alert")
+        if save:
+            self.save(update_fields=["status", "modified", "text"])
+
+    def message(self) -> str:
+        """Format alert as a message string (e.g. before sending via WhatsApp)."""
+        statusName = Alert.Status(self.status).label
+        levelName = Alert.Level(self.level).label
+        text = f"*[{statusName} {levelName}]* {self.title}"
+        if self.node:
+            text += f"\nGenerated by node '{self.node.name}'"
+        return f"{text}\n{self.text}"
 
     def __str__(self):
         return f"Alert for {self.node} level={self.level} [{self.created}]"

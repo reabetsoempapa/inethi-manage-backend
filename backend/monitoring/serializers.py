@@ -85,7 +85,7 @@ class NodeSerializer(DynamicFieldsMixin, ModelSerializer):
 
     def get_num_unresolved_alerts(self, node: models.Node) -> int:
         """Get the number of unresolved alerts for this node."""
-        return node.alerts.filter(resolved=False).count()
+        return node.alerts.exclude(status=models.Alert.Status.RESOLVED).count()
 
     def get_upload_speed(self, node: models.Node) -> float | None:
         """Get node's upload speed."""

@@ -1,4 +1,3 @@
-from typing import TYPE_CHECKING, Any
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.conf import settings
@@ -10,16 +9,23 @@ logger = get_task_logger(__name__)
 
 
 @shared_task
-def send_alert_message(verb: str, alertId: int, meshName: str):
+def send_alert_message(alertId: int):
     """Send an alert SMS via Twilio."""
     if not settings.TWILIO_ENABLED:
-        return 
+        return
+    if not (
+        settings.TWILIO_ACCOUNT_SID
+        and settings.TWILIO_AUTH_TOKEN
+        and settings.TWILIO_PHONE_NUM
+    ):
+        logger.warning("Skipping alert messgae, Twilio not configured")
+        return
     alert = models.Alert.objects.get(pk=alertId)
-    mesh = models.Mesh.objects.get(name=meshName)
-    levelName = models.Alert.Level(alert.level).label
-    text = f"[{verb} {levelName}] {alert.title}\n{alert.text}"
-    numbers = mesh.maintainers.values_list("profile__phone_number", flat=True)
-    logger.info(f"Sending text to {meshName} ({numbers.count()} numbers)\n{text}")
+    if not alert.mesh:
+        logger.error("Cannot send alert, alert is not associated with a mesh")
+        return
+    text = alert.message()
+    numbers = alert.mesh.maintainers.values_list("profile__phone_number", flat=True)
     for phonenum in numbers:
         send_whatsapp(text, phonenum)
 
@@ -29,7 +35,7 @@ def send_whatsapp(body: str, number: str) -> None:
     """Send an sms from a twilio account."""
     client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
     message = client.messages.create(
-        from_="whatsapp:+14155238886",
+        from_=f"whatsapp:{settings.TWILIO_PHONE_NUM}",
         body=body,
         to=f"whatsapp:{number}",
     )
