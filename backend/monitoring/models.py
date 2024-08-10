@@ -237,11 +237,14 @@ class Node(models.Model):
 
     def get_health_status(self) -> HealthStatus:
         """Convert CheckResults into health status."""
+        # If no checks have been run, assume status is unknown
+        if self.check_results.num_run == 0:
+            return Node.HealthStatus.UNKNOWN
         if self.check_results.oll_korrect():
             return Node.HealthStatus.OK
-        elif self.check_results.fewer_than_half_failed():
+        if self.check_results.fewer_than_half_failed():
             return Node.HealthStatus.DECENT
-        elif self.check_results.more_than_half_failed_but_not_all():
+        if self.check_results.more_than_half_failed_but_not_all():
             return Node.HealthStatus.WARNING
         # All failed
         return Node.HealthStatus.CRITICAL
