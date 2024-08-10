@@ -1,32 +1,31 @@
 from django.contrib.auth.models import User
-from django.db.models import Sum
-from rest_framework.serializers import ModelSerializer, SerializerMethodField, SlugRelatedField
+from rest_framework import serializers
 
-from radius.models import Radacct
+from .models import UserProfile
 
 
-class UserSerializer(ModelSerializer):
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Serializes UserProfile objects from django model to JSON."""
+
+    num_sessions = serializers.IntegerField(read_only=True)
+    bytes_recv = serializers.IntegerField(read_only=True)
+    bytes_sent = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        """UserProfileSerializer metadata."""
+
+        model = UserProfile
+        fields = "__all__"
+
+
+class UserSerializer(serializers.ModelSerializer):
     """Serializes User objects from django model to JSON."""
 
-    num_sessions = SerializerMethodField()
-    bytes_recv = SerializerMethodField()
-    bytes_sent = SerializerMethodField()
-    groups = SlugRelatedField(many=True, read_only=True, slug_field="name")
+    profile = UserProfileSerializer(required=False)
+    groups = serializers.SlugRelatedField(many=True, read_only=True, slug_field="name")
 
     class Meta:
         """UserSerializer metadata."""
 
         model = User
         exclude = ("password",)
-        
-    def sessions(self, user: User):
-        return Radacct.objects.filter(username=user.username)
-
-    def get_num_sessions(self, user: User) -> int:
-        return self.sessions(user).count()
-
-    def get_bytes_recv(self, user: User) -> int:
-        return self.sessions(user).aggregate(Sum("acctinputoctets"))["acctinputoctets__sum"]
-
-    def get_bytes_sent(self, user: User) -> int:
-        return self.sessions(user).aggregate(Sum("acctoutputoctets"))["acctoutputoctets__sum"]
