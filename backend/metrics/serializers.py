@@ -1,4 +1,4 @@
-from rest_framework.serializers import ModelSerializer, PrimaryKeyRelatedField
+from rest_framework.serializers import ModelSerializer, PrimaryKeyRelatedField, SerializerMethodField
 
 from . import models
 
@@ -23,6 +23,14 @@ class FailuresMetricSerializer(ModelSerializer):
 
         model = models.FailuresMetric
         fields = "__all__"
+
+    tx_retries_perc = SerializerMethodField()
+
+    def get_tx_retries_perc(self, obj: models.FailuresMetric):
+        """Get tx_retries as a percentage."""
+        if obj.tx_packets == 0:
+            return 0
+        return round(obj.tx_retries / obj.tx_packets * 100)
 
 
 class ResourcesMetricSerializer(ModelSerializer):
