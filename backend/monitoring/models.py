@@ -1,5 +1,6 @@
 from django.utils.functional import cached_property
 from django.db import models
+from django.contrib.auth.models import User
 from macaddress.fields import MACAddressField
 
 from metrics.models import ResourcesMetric, RTTMetric, DataRateMetric
@@ -38,6 +39,7 @@ class Mesh(models.Model):
     location = models.CharField(max_length=255, null=True, blank=True)
     lat = models.FloatField(default=0.0)
     lon = models.FloatField(default=0.0)
+    maintainers = models.ManyToManyField(User, blank=True)
 
 
 class MeshSettings(models.Model):
@@ -70,6 +72,10 @@ class Node(models.Model):
     probably more accurate seeing that e.g. client devices are also network devices
     but they aren't network nodes that can route data.
     """
+
+    class Meta:
+
+        ordering = ["name"]
 
     class Hardware(models.TextChoices):
         """Hardware choices."""
