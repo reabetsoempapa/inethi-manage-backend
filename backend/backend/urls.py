@@ -28,4 +28,5 @@ urlpatterns = [
     path("wallet/", include("wallet.urls")),
     path("sync/", include("sync.urls")),
     path("radius/", include("radius.urls")),
+    path("appUsers/", include("appUser.urls")),
 ]

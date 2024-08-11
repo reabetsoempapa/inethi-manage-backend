@@ -92,6 +92,7 @@ INSTALLED_APPS = [
     "wallet",
     "sync",
     "radius",
+    "appUser",
 ]
 # Keycloak config
 AUTHENTICATION_BACKENDS = ["django_keycloak.backends.KeycloakAuthorizationCodeBackend"]
@@ -266,14 +267,35 @@ WSGI_APPLICATION = "backend.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# DATABASES = {
+#     "default": env.db("DATABASE_URL"),
+#     "metrics_db": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "metrics.sqlite3",
+#     },
+#     "radius_db": RADIUSDESK_DB,
+# }
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.mysql",
+#         "NAME": env("MYSQL_DATABASE", default="manage"),
+#         "USER": env("MYSQL_USER", default="inethi"),
+#         "PASSWORD": env("MYSQL_PASSWORD", default="iNethi2023#"),
+#         "HOST": "localhost",  # Assuming you're running Django locally
+#         "PORT": "3306",
+#     },
+# }
 DATABASES = {
-    "default": env.db("DATABASE_URL"),
-    "metrics_db": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "metrics.sqlite3",
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "manage",  # Database name
+        "USER": "inethi",  # MySQL username
+        "PASSWORD": "iNethi2023#",  # MySQL password
+        "HOST": "127.0.0.1",  # Use '127.0.0.1' to force TCP/IP connection
+        "PORT": "3306",  # Default MySQL port
     },
-    "radius_db": RADIUSDESK_DB,
 }
+
 
 DATABASE_ROUTERS = ["backend.routers.MetricsRouter"]
 

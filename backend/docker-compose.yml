@@ -1,16 +1,16 @@
-version: '3'
-
 services:
   inethi-manage-mysql:
     container_name: inethi-manage-mysql
     image: mysql:latest
     environment:
-      MYSQL_DATABASE: 'manage'
-      MYSQL_USER: 'inethi'
-      MYSQL_PASSWORD: 'iNethi2023#'
-      MYSQL_ROOT_PASSWORD: 'iNethi2023#'
+      MYSQL_DATABASE: "manage"
+      MYSQL_USER: "inethi"
+      MYSQL_PASSWORD: "iNethi2023#"
+      MYSQL_ROOT_PASSWORD: "iNethi2023#"
     volumes:
       - manage_db:/var/lib/mysql
+    ports:
+      - "3306:3306" # Ensure port mapping is explicitly defined
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.manageMysql.entrypoints=websecure"
@@ -31,8 +31,8 @@ services:
 
 networks:
   default:
-    external:
-      name: "inethi-bridge-traefik"
+    name: "inethi-bridge-traefik"
+    external: true
 
 volumes:
   manage_db:
