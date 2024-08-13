@@ -188,6 +188,8 @@ idna==3.7
     #   yarl
 incremental==24.7.2
     # via twisted
+inflection==0.5.1
+    # via manage-backend (pyproject.toml)
 jsonschema==4.23.0
     # via web3
 jsonschema-specifications==2023.12.1
@@ -306,6 +308,8 @@ typing-extensions==4.12.2
     #   web3
 tzdata==2024.1
     # via celery
+uritemplate==4.1.1
+    # via manage-backend (pyproject.toml)
 urllib3==2.2.2
     # via
     #   django-revproxy

@@ -105,12 +105,11 @@ KEYCLOAK_CLIENTS = {
         "CLIENT_SECRET": None,  # DRF client is public
     },
 }
-# 
 if env("KEYCLOAK_ADMIN_ENABLED"):
     KEYCLOAK_CLIENTS["ADMIN"] = {
         "USERNAME": env("KEYCLOAK_ADMIN_USERNAME"),
         "PASSWORD": env("KEYCLOAK_ADMIN_PASSWORD"),
-        "REALM": env("KEYCLOAK_ADMIN_REALM")
+        "REALM": env("KEYCLOAK_ADMIN_REALM"),
     }
 
 # Radiusdesk config
@@ -249,7 +248,7 @@ ROOT_URLCONF = "backend.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "backend" / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
