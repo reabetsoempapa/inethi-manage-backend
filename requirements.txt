@@ -6,7 +6,7 @@
 #
 aiohappyeyeballs==2.3.5
     # via aiohttp
-aiohttp==3.10.2
+aiohttp==3.10.3
     # via
     #   aiohttp-retry
     #   twilio
@@ -106,7 +106,7 @@ django-cors-headers==4.4.0
     # via manage-backend (pyproject.toml)
 django-environ==0.11.2
     # via manage-backend (pyproject.toml)
-django-keycloak-admin==0.0.4
+django-keycloak-admin==0.0.5
     # via manage-backend (pyproject.toml)
 django-macaddress==1.8.0
     # via manage-backend (pyproject.toml)
@@ -161,7 +161,7 @@ frozenlist==1.4.1
     # via
     #   aiohttp
     #   aiosignal
-gunicorn==22.0.0
+gunicorn==23.0.0
     # via manage-backend (pyproject.toml)
 h11==0.14.0
     # via httpcore
@@ -290,7 +290,7 @@ toolz==0.12.1
     # via cytoolz
 twilio==9.2.3
     # via manage-backend (pyproject.toml)
-twisted[tls]==24.3.0
+twisted[tls]==24.7.0
     # via daphne
 txaio==23.1.1
     # via autobahn

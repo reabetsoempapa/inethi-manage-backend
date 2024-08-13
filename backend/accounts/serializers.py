@@ -12,6 +12,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
         model = UserProfile
         fields = "__all__"
+        read_only_fields = ("user",)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -24,4 +25,15 @@ class UserSerializer(serializers.ModelSerializer):
         """UserSerializer metadata."""
 
         model = User
-        exclude = ("password",)
+        fields = "__all__"
+        write_only_fields = ("password",)
+
+    def create(self, validated_data):
+        """Update profile after creating the user."""
+        profile_data = validated_data.pop('profile', None)
+        user = super().create(validated_data)
+        if profile_data:
+            profile_serializer = UserProfileSerializer(user.profile, data=profile_data)
+            profile_serializer.is_valid(raise_exception=True)
+            profile_serializer.save()
+        return user

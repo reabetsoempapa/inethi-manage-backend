@@ -14,3 +14,16 @@ class IsRequestUserOrReadOnly(permissions.BasePermission):
             return False
         # Instance must be the logged in user
         return isinstance(obj, User) and obj.id == request.user.id
+
+
+class IsCreationOrIsAuthenticated(permissions.BasePermission):
+    """Bypass authentication when creating new users."""
+
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            if view.action == 'create':
+                return True
+            else:
+                return False
+        else:
+            return True

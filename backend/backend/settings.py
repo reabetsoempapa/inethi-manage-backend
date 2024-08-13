@@ -23,18 +23,22 @@ env = environ.Env(
     SYNC_UNIFI=(bool, False),
     REDIS_HOST=(str, "localhost"),
     ALLOWED_HOSTS=(list, []),
+    CSRF_TRUSTED_ORIGINS=(list, []),
     TWILIO_ENABLED=(bool, False),
     TWILIO_ACCOUNT_SID=(str, None),
     TWILIO_AUTH_TOKEN=(str, None),
     TWILIO_PHONE_NUM=(str, None),
-    RADIUSDESK_DB_URL=(str, None)
+    RADIUSDESK_DB_URL=(str, None),
+    KEYCLOAK_ADMIN_ENABLED=(bool, False),
+    KEYCLOAK_ADMIN_REALM=(str, "master"),
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-if os.path.exists(os.path.join(BASE_DIR, '.env')):
-    environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+# If the .env file does not exist, we read from os env
+if os.path.exists(os.path.join(BASE_DIR, ".env")):
+    environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -45,25 +49,14 @@ SECRET_KEY = env("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG")
 
-ALLOWED_HOSTS = [
-    "127.0.0.1",
-    "localhost",
-    "manage.inethicloud.net",
-    "manage.inethilocal.net",
-    "manage-backend.inethilocal.net",
-    "manage-backend.inethicloud.net",
-] + env("ALLOWED_HOSTS")
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"] + env("ALLOWED_HOSTS")
 
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://localhost:8000",
     "http://127.0.0.1:3000",
     "http://localhost:3000",
-    "https://manage.inethilocal.net",
-    "https://manage.inethicloud.net",
-    "https://manage-backend.inethilocal.net",
-    "https://manage-backend.inethicloud.net",
-]
+] + env("CSRF_TRUSTED_ORIGINS")
 
 # CORS settings for development. For production, consider specifying CORS_ALLOWED_ORIGINS.
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # For development
@@ -112,6 +105,14 @@ KEYCLOAK_CLIENTS = {
         "CLIENT_SECRET": None,  # DRF client is public
     },
 }
+# 
+if env("KEYCLOAK_ADMIN_ENABLED"):
+    KEYCLOAK_CLIENTS["ADMIN"] = {
+        "USERNAME": env("KEYCLOAK_ADMIN_USERNAME"),
+        "PASSWORD": env("KEYCLOAK_ADMIN_PASSWORD"),
+        "REALM": env("KEYCLOAK_ADMIN_REALM")
+    }
+
 # Radiusdesk config
 SYNC_RD_ENABLED = env("SYNC_RD") and bool(RADIUSDESK_DB)
 RD_URL = env("RADIUSDESK_URL")

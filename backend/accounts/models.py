@@ -15,9 +15,12 @@ class UserProfile(models.Model):
     min_alert_level = models.SmallIntegerField(
         choices=Alert.Level.choices, default=Alert.Level.WARNING
     )
-    alert_meshes = models.ManyToManyField(Mesh, related_name="alerted_users")
+    alert_meshes = models.ManyToManyField(Mesh, related_name="alerted_users", blank=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     phone_number = PhoneNumberField(blank=True)
+
+    def __str__(self):
+        return f"{self.user.username.capitalize()}'s Profile"
 
     @cached_property
     def sessions(self):
