@@ -27,6 +27,7 @@ env = environ.Env(
     TWILIO_ACCOUNT_SID=(str, None),
     TWILIO_AUTH_TOKEN=(str, None),
     TWILIO_PHONE_NUM=(str, None),
+    RADIUSDESK_DB_URL=(str, None)
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -66,6 +67,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 # CORS settings for development. For production, consider specifying CORS_ALLOWED_ORIGINS.
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # For development
+RADIUSDESK_DB = env.db_url("RADIUSDESK_DB_URL") if env("RADIUSDESK_DB_URL") else None
 
 CORS_ALLOW_CREDENTIALS = True
 # Application definition
@@ -111,8 +113,7 @@ KEYCLOAK_CLIENTS = {
     },
 }
 # Radiusdesk config
-SYNC_RD_ENABLED = env("SYNC_RD")
-RADIUSDESK_DB = env.db_url("RADIUSDESK_DB_URL")
+SYNC_RD_ENABLED = env("SYNC_RD") and bool(RADIUSDESK_DB)
 RD_URL = env("RADIUSDESK_URL")
 # UNIFI config
 SYNC_UNIFI_ENABLED = env("SYNC_UNIFI")
@@ -272,8 +273,11 @@ DATABASES = {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "metrics.sqlite3",
     },
-    "radius_db": RADIUSDESK_DB,
 }
+# The API doesn't NEED radiusdesk to run, but without it you won't have
+# access to the freeradius account data
+if RADIUSDESK_DB:
+    DATABASES["radius_db"] = RADIUSDESK_DB
 
 DATABASE_ROUTERS = ["backend.routers.MetricsRouter"]
 

@@ -7,10 +7,6 @@ from .models import UserProfile
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializes UserProfile objects from django model to JSON."""
 
-    num_sessions = serializers.IntegerField(read_only=True)
-    bytes_recv = serializers.IntegerField(read_only=True)
-    bytes_sent = serializers.IntegerField(read_only=True)
-
     class Meta:
         """UserProfileSerializer metadata."""
 

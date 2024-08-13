@@ -44,7 +44,6 @@ class Radacct(models.Model):
     operator_name = models.CharField(max_length=32)
 
     class Meta:
-        managed = False
         db_table = "radacct"
 
     def __str__(self):
@@ -58,7 +57,6 @@ class Radcheck(models.Model):
     value = models.CharField(max_length=253)
 
     class Meta:
-        managed = False
         db_table = "radcheck"
 
     def __str__(self):
@@ -76,7 +74,6 @@ class Radgroupcheck(models.Model):
     modified = models.DateTimeField()
 
     class Meta:
-        managed = False
         db_table = "radgroupcheck"
 
     def __str__(self):
@@ -96,7 +93,6 @@ class Radgroupreply(models.Model):
     modified = models.DateTimeField()
 
     class Meta:
-        managed = False
         db_table = "radgroupreply"
 
     def __str__(self):
@@ -124,7 +120,6 @@ class Radippool(models.Model):
     modified = models.DateTimeField()
 
     class Meta:
-        managed = False
         db_table = "radippool"
 
     def __str__(self):
@@ -142,7 +137,6 @@ class Radpostauth(models.Model):
     authdate = models.DateTimeField()
 
     class Meta:
-        managed = False
         db_table = "radpostauth"
 
     def __str__(self):
@@ -156,7 +150,6 @@ class Radreply(models.Model):
     value = models.CharField(max_length=253)
 
     class Meta:
-        managed = False
         db_table = "radreply"
 
     def __str__(self):
@@ -169,7 +162,6 @@ class Radusergroup(models.Model):
     priority = models.IntegerField()
 
     class Meta:
-        managed = False
         db_table = "radusergroup"
 
     def __str__(self):
@@ -215,7 +207,6 @@ class Nas(models.Model):
     modified = models.DateTimeField()
 
     class Meta:
-        managed = False
         db_table = "nas"
 
     def __str__(self):
