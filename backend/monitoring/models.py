@@ -49,13 +49,10 @@ class MeshSettings(models.Model):
     mesh = models.OneToOneField(Mesh, on_delete=models.CASCADE, related_name="settings")
 
     alerts_enabled = models.BooleanField(default=True)
-    check_upload_speed = models.FloatField(null=True, blank=True)
-    check_download_speed = models.FloatField(null=True, blank=True)
     check_rtt = models.IntegerField(null=True, blank=True)
     check_cpu = models.IntegerField(null=True, blank=True)
     check_mem = models.IntegerField(null=True, blank=True)
     check_active = models.DurationField(null=True, blank=True)
-    check_ping = models.DurationField(null=True, blank=True)
     check_daily_data_usage = models.FloatField(null=True, blank=True)
     check_hourly_data_usage = models.FloatField(null=True, blank=True)
     check_daily_uptime = models.IntegerField(null=True, blank=True)

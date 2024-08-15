@@ -160,18 +160,6 @@ DEVICE_CHECKS = [
         },
     },
     {
-        "title": "Recently Contacted",
-        "key": "last_ping",
-        "setting": "check_ping",
-        "func": lambda v, s: timezone.now() - v < s,
-        "feedback": {
-            "NO_DATA": "Device has never been pinged",
-            "NO_SETTING": "No contact time warning set",
-            False: "Device has not been pinged recently",
-            True: "Device has been pinged recently",
-        },
-    },
-    {
         "title": "Active",
         "key": "last_contact",
         "setting": "check_active",
@@ -193,30 +181,6 @@ DEVICE_CHECKS = [
             "NO_SETTING": "No RTT warning set",
             False: "Took too long to return a response",
             True: "Response time is acceptable",
-        },
-    },
-    {
-        "title": "Upload Speed",
-        "key": "upload_speed",
-        "setting": "check_upload_speed",
-        "func": lambda v, s: v > s,
-        "feedback": {
-            "NO_DATA": "No upload speed data",
-            "NO_SETTING": "No upload warning set",
-            False: "Node is uploading data too slowly",
-            True: "Upload speed is acceptable",
-        },
-    },
-    {
-        "title": "Download Speed",
-        "key": "download_speed",
-        "setting": "check_download_speed",
-        "func": lambda v, s: v > s,
-        "feedback": {
-            "NO_DATA": "No download speed data",
-            "NO_SETTING": "No download warning set",
-            False: "Node is downloading data too slowly",
-            True: "Download speed is acceptable",
         },
     },
 ]
